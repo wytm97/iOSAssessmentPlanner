@@ -14,6 +14,34 @@
 		24887F58248B0C080038D875 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 24887F57248B0C080038D875 /* Assets.xcassets */; };
 		24887F5B248B0C080038D875 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 24887F5A248B0C080038D875 /* Preview Assets.xcassets */; };
 		24887F5E248B0C080038D875 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24887F5C248B0C080038D875 /* LaunchScreen.storyboard */; };
+		24887F78248B112E0038D875 /* Assessment+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F72248B112E0038D875 /* Assessment+CoreDataClass.swift */; };
+		24887F79248B112E0038D875 /* Assessment+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F73248B112E0038D875 /* Assessment+CoreDataProperties.swift */; };
+		24887F7A248B112E0038D875 /* Module+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F74248B112E0038D875 /* Module+CoreDataClass.swift */; };
+		24887F7B248B112E0038D875 /* Module+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F75248B112E0038D875 /* Module+CoreDataProperties.swift */; };
+		24887F7C248B112E0038D875 /* Task+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F76248B112E0038D875 /* Task+CoreDataClass.swift */; };
+		24887F7D248B112E0038D875 /* Task+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F77248B112E0038D875 /* Task+CoreDataProperties.swift */; };
+		24887F80248B133D0038D875 /* SweetToastModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F7F248B133D0038D875 /* SweetToastModifier.swift */; };
+		24887F82248B14800038D875 /* TextLeftAlignModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F81248B14800038D875 /* TextLeftAlignModifier.swift */; };
+		24887F85248B14EF0038D875 /* GlobalState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F84248B14EF0038D875 /* GlobalState.swift */; };
+		24887F87248B15170038D875 /* CalendarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F86248B15170038D875 /* CalendarManager.swift */; };
+		24887F89248B15480038D875 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F88248B15480038D875 /* Utils.swift */; };
+		24887F8C248B15C40038D875 /* FormElementWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F8B248B15C40038D875 /* FormElementWrapper.swift */; };
+		24887F8E248B16180038D875 /* AssessmentListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F8D248B16180038D875 /* AssessmentListItem.swift */; };
+		24887F90248B16760038D875 /* ProgressRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F8F248B16760038D875 /* ProgressRing.swift */; };
+		24887F92248B17000038D875 /* TaskListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F91248B17000038D875 /* TaskListItem.swift */; };
+		24887F94248B17460038D875 /* FormModalWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F93248B17460038D875 /* FormModalWrapper.swift */; };
+		24887F96248B17650038D875 /* CheckBoxField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F95248B17650038D875 /* CheckBoxField.swift */; };
+		24887F98248B17990038D875 /* ProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F97248B17990038D875 /* ProgressBar.swift */; };
+		24887F9A248B17BF0038D875 /* FilteredAssessmentList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F99248B17BF0038D875 /* FilteredAssessmentList.swift */; };
+		24887F9C248B17E10038D875 /* AssessmentDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F9B248B17E10038D875 /* AssessmentDetails.swift */; };
+		24887F9E248B180F0038D875 /* MultilineTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F9D248B180F0038D875 /* MultilineTextView.swift */; };
+		24887FA0248B18A50038D875 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F9F248B18A50038D875 /* Extensions.swift */; };
+		24887FA3248B194E0038D875 /* ModuleDeleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887FA2248B194E0038D875 /* ModuleDeleteView.swift */; };
+		24887FA5248B19A70038D875 /* AssessmentManageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887FA4248B19A70038D875 /* AssessmentManageView.swift */; };
+		24887FA7248B19E50038D875 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887FA6248B19E50038D875 /* DetailView.swift */; };
+		24887FA9248B1A2A0038D875 /* TaskManageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887FA8248B1A2A0038D875 /* TaskManageView.swift */; };
+		24887FAB248B1A550038D875 /* ModuleAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887FAA248B1A550038D875 /* ModuleAddView.swift */; };
+		24887FAD248B1C070038D875 /* DemoDataGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887FAC248B1C070038D875 /* DemoDataGenerator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +54,34 @@
 		24887F5A248B0C080038D875 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		24887F5D248B0C080038D875 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		24887F5F248B0C080038D875 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		24887F72248B112E0038D875 /* Assessment+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Assessment+CoreDataClass.swift"; sourceTree = "<group>"; };
+		24887F73248B112E0038D875 /* Assessment+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Assessment+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		24887F74248B112E0038D875 /* Module+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Module+CoreDataClass.swift"; sourceTree = "<group>"; };
+		24887F75248B112E0038D875 /* Module+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Module+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		24887F76248B112E0038D875 /* Task+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Task+CoreDataClass.swift"; sourceTree = "<group>"; };
+		24887F77248B112E0038D875 /* Task+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Task+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		24887F7F248B133D0038D875 /* SweetToastModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SweetToastModifier.swift; sourceTree = "<group>"; };
+		24887F81248B14800038D875 /* TextLeftAlignModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextLeftAlignModifier.swift; sourceTree = "<group>"; };
+		24887F84248B14EF0038D875 /* GlobalState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalState.swift; sourceTree = "<group>"; };
+		24887F86248B15170038D875 /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
+		24887F88248B15480038D875 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
+		24887F8B248B15C40038D875 /* FormElementWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormElementWrapper.swift; sourceTree = "<group>"; };
+		24887F8D248B16180038D875 /* AssessmentListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssessmentListItem.swift; sourceTree = "<group>"; };
+		24887F8F248B16760038D875 /* ProgressRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressRing.swift; sourceTree = "<group>"; };
+		24887F91248B17000038D875 /* TaskListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListItem.swift; sourceTree = "<group>"; };
+		24887F93248B17460038D875 /* FormModalWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormModalWrapper.swift; sourceTree = "<group>"; };
+		24887F95248B17650038D875 /* CheckBoxField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckBoxField.swift; sourceTree = "<group>"; };
+		24887F97248B17990038D875 /* ProgressBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressBar.swift; sourceTree = "<group>"; };
+		24887F99248B17BF0038D875 /* FilteredAssessmentList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilteredAssessmentList.swift; sourceTree = "<group>"; };
+		24887F9B248B17E10038D875 /* AssessmentDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssessmentDetails.swift; sourceTree = "<group>"; };
+		24887F9D248B180F0038D875 /* MultilineTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultilineTextView.swift; sourceTree = "<group>"; };
+		24887F9F248B18A50038D875 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		24887FA2248B194E0038D875 /* ModuleDeleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleDeleteView.swift; sourceTree = "<group>"; };
+		24887FA4248B19A70038D875 /* AssessmentManageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssessmentManageView.swift; sourceTree = "<group>"; };
+		24887FA6248B19E50038D875 /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
+		24887FA8248B1A2A0038D875 /* TaskManageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskManageView.swift; sourceTree = "<group>"; };
+		24887FAA248B1A550038D875 /* ModuleAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleAddView.swift; sourceTree = "<group>"; };
+		24887FAC248B1C070038D875 /* DemoDataGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoDataGenerator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,9 +114,16 @@
 		24887F4D248B0C060038D875 /* Assessment Planner */ = {
 			isa = PBXGroup;
 			children = (
+				24887FA1248B19130038D875 /* Model Views */,
+				24887F8A248B15AD0038D875 /* Components */,
+				24887F83248B14BD0038D875 /* Managers */,
+				24887F7E248B13190038D875 /* Modifiers */,
+				24887F65248B0F570038D875 /* Core Data Models */,
 				24887F4E248B0C060038D875 /* AppDelegate.swift */,
 				24887F50248B0C060038D875 /* SceneDelegate.swift */,
 				24887F55248B0C060038D875 /* ContentView.swift */,
+				24887F9F248B18A50038D875 /* Extensions.swift */,
+				24887FAC248B1C070038D875 /* DemoDataGenerator.swift */,
 				24887F57248B0C080038D875 /* Assets.xcassets */,
 				24887F5C248B0C080038D875 /* LaunchScreen.storyboard */,
 				24887F5F248B0C080038D875 /* Info.plist */,
@@ -76,6 +139,67 @@
 				24887F5A248B0C080038D875 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		24887F65248B0F570038D875 /* Core Data Models */ = {
+			isa = PBXGroup;
+			children = (
+				24887F72248B112E0038D875 /* Assessment+CoreDataClass.swift */,
+				24887F73248B112E0038D875 /* Assessment+CoreDataProperties.swift */,
+				24887F74248B112E0038D875 /* Module+CoreDataClass.swift */,
+				24887F75248B112E0038D875 /* Module+CoreDataProperties.swift */,
+				24887F76248B112E0038D875 /* Task+CoreDataClass.swift */,
+				24887F77248B112E0038D875 /* Task+CoreDataProperties.swift */,
+			);
+			path = "Core Data Models";
+			sourceTree = "<group>";
+		};
+		24887F7E248B13190038D875 /* Modifiers */ = {
+			isa = PBXGroup;
+			children = (
+				24887F7F248B133D0038D875 /* SweetToastModifier.swift */,
+				24887F81248B14800038D875 /* TextLeftAlignModifier.swift */,
+			);
+			path = Modifiers;
+			sourceTree = "<group>";
+		};
+		24887F83248B14BD0038D875 /* Managers */ = {
+			isa = PBXGroup;
+			children = (
+				24887F84248B14EF0038D875 /* GlobalState.swift */,
+				24887F86248B15170038D875 /* CalendarManager.swift */,
+				24887F88248B15480038D875 /* Utils.swift */,
+			);
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		24887F8A248B15AD0038D875 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				24887F8B248B15C40038D875 /* FormElementWrapper.swift */,
+				24887F8D248B16180038D875 /* AssessmentListItem.swift */,
+				24887F8F248B16760038D875 /* ProgressRing.swift */,
+				24887F91248B17000038D875 /* TaskListItem.swift */,
+				24887F93248B17460038D875 /* FormModalWrapper.swift */,
+				24887F95248B17650038D875 /* CheckBoxField.swift */,
+				24887F97248B17990038D875 /* ProgressBar.swift */,
+				24887F99248B17BF0038D875 /* FilteredAssessmentList.swift */,
+				24887F9B248B17E10038D875 /* AssessmentDetails.swift */,
+				24887F9D248B180F0038D875 /* MultilineTextView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		24887FA1248B19130038D875 /* Model Views */ = {
+			isa = PBXGroup;
+			children = (
+				24887FA2248B194E0038D875 /* ModuleDeleteView.swift */,
+				24887FA4248B19A70038D875 /* AssessmentManageView.swift */,
+				24887FA6248B19E50038D875 /* DetailView.swift */,
+				24887FA8248B1A2A0038D875 /* TaskManageView.swift */,
+				24887FAA248B1A550038D875 /* ModuleAddView.swift */,
+			);
+			path = "Model Views";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -149,10 +273,38 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				24887F82248B14800038D875 /* TextLeftAlignModifier.swift in Sources */,
 				24887F54248B0C060038D875 /* Assessment_Planner.xcdatamodeld in Sources */,
+				24887F96248B17650038D875 /* CheckBoxField.swift in Sources */,
+				24887F8C248B15C40038D875 /* FormElementWrapper.swift in Sources */,
+				24887F94248B17460038D875 /* FormModalWrapper.swift in Sources */,
+				24887F9E248B180F0038D875 /* MultilineTextView.swift in Sources */,
+				24887FA9248B1A2A0038D875 /* TaskManageView.swift in Sources */,
+				24887F98248B17990038D875 /* ProgressBar.swift in Sources */,
+				24887FA3248B194E0038D875 /* ModuleDeleteView.swift in Sources */,
+				24887F7C248B112E0038D875 /* Task+CoreDataClass.swift in Sources */,
+				24887F9A248B17BF0038D875 /* FilteredAssessmentList.swift in Sources */,
+				24887F87248B15170038D875 /* CalendarManager.swift in Sources */,
+				24887FAB248B1A550038D875 /* ModuleAddView.swift in Sources */,
+				24887F80248B133D0038D875 /* SweetToastModifier.swift in Sources */,
 				24887F4F248B0C060038D875 /* AppDelegate.swift in Sources */,
+				24887F85248B14EF0038D875 /* GlobalState.swift in Sources */,
+				24887F7A248B112E0038D875 /* Module+CoreDataClass.swift in Sources */,
+				24887FA7248B19E50038D875 /* DetailView.swift in Sources */,
+				24887F8E248B16180038D875 /* AssessmentListItem.swift in Sources */,
+				24887F7B248B112E0038D875 /* Module+CoreDataProperties.swift in Sources */,
 				24887F56248B0C060038D875 /* ContentView.swift in Sources */,
+				24887F92248B17000038D875 /* TaskListItem.swift in Sources */,
+				24887F9C248B17E10038D875 /* AssessmentDetails.swift in Sources */,
+				24887F79248B112E0038D875 /* Assessment+CoreDataProperties.swift in Sources */,
+				24887FAD248B1C070038D875 /* DemoDataGenerator.swift in Sources */,
 				24887F51248B0C060038D875 /* SceneDelegate.swift in Sources */,
+				24887FA0248B18A50038D875 /* Extensions.swift in Sources */,
+				24887FA5248B19A70038D875 /* AssessmentManageView.swift in Sources */,
+				24887F7D248B112E0038D875 /* Task+CoreDataProperties.swift in Sources */,
+				24887F89248B15480038D875 /* Utils.swift in Sources */,
+				24887F78248B112E0038D875 /* Assessment+CoreDataClass.swift in Sources */,
+				24887F90248B16760038D875 /* ProgressRing.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -300,7 +452,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "dev.yasint.Assessment-Planner";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Debug;
 		};
@@ -320,7 +472,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "dev.yasint.Assessment-Planner";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Release;
 		};
