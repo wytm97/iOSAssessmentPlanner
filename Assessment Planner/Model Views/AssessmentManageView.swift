@@ -18,7 +18,7 @@ struct AssessmentManageView: View {
     @State var reminderList: [String] = AlarmOffset.rawValues()
     @State var priorityList: [String] = AssessmentPriority.values()
     @Binding var show: Bool
-    @State var mulTextFieldHeight: CGFloat = 70
+    @State var mulTextFieldHeight: CGFloat = 70 /// Needed for dynamically adjusting the `notes textview`
     
     @State var selectedModule: Int = 0
     @State var name: String = ""
@@ -51,7 +51,7 @@ struct AssessmentManageView: View {
                 nameFormField
                 HStack {
                     weightageFormField
-                    if editing { // Initially this is hidden
+                    if editing { /// Initially this is hidden
                         markAchievedField
                     }
                 }
@@ -71,7 +71,6 @@ struct AssessmentManageView: View {
                     deadline: .now(),
                     execute: DispatchWorkItem {
                         self.mapObjectToState()
-                        self.checkFormValidity()
                     }
                 )
             }
@@ -110,28 +109,16 @@ struct AssessmentManageView: View {
     }
     
     var nameFormField: some View {
-        
-        let valBind = Binding<String>(get: {
-            self.name
-        }, set: {
-            self.name = $0
-            print("changed name")
-        })
-        
-        return FormElementWrapper {
+        FormElementWrapper {
             Text("Assessment Name").font(.headline)
-            TextField("Coursework 2", text: valBind, onEditingChanged: { _ in
-                self.checkFormValidity()
-                
-            })
+            TextField("Coursework 2", text: $name)
         }
-        
     }
     
     var weightageFormField: some View {
         FormElementWrapper {
             Text("Weightage %").font(.headline)
-            TextField("50%", text: self.$weightage, onEditingChanged: { _ in self.checkFormValidity() }).keyboardType(.decimalPad)
+            TextField("50%", text: $weightage).keyboardType(.decimalPad)
         }
     }
     
@@ -139,7 +126,7 @@ struct AssessmentManageView: View {
         FormElementWrapper {
             Text("Mark Achieved %")
                 .font(.headline)
-            TextField("95", text: self.$markAchieved, onEditingChanged: { _ in self.checkFormValidity() })
+            TextField("95", text: $markAchieved)
                 .keyboardType(.numberPad)
         }
     }
@@ -148,18 +135,9 @@ struct AssessmentManageView: View {
         FormElementWrapper {
             Text("Notes (Optional)")
                 .font(.headline)
-            VStack {
-                MultilineTextField(text: $notes, height: $mulTextFieldHeight, onEditingChanged: {
-                    print("changed", self.notes)
-                }).animation(.linear)
-                    .frame(height: mulTextFieldHeight)
-                
-            }
-            //            TextField(
-            //                "Enter notes here....",
-            //                text: $notes,onEditingChanged: { _ in self.checkFormValidity() })
-            //                .lineLimit(nil)
-            //                .multilineTextAlignment(.leading)
+            MultilineTextField(text: $notes, height: $mulTextFieldHeight)
+                .animation(.linear)
+                .frame(height: mulTextFieldHeight)
         }
     }
     

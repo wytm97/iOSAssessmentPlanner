@@ -26,8 +26,8 @@ struct MultilineTextField: UIViewRepresentable {
         textView.isEditable = true
         textView.isUserInteractionEnabled = true
         textView.isScrollEnabled = true
-        textView.text = "Type Something"
-        textView.textColor = .gray
+        textView.text = "Type Some Notes..."
+        textView.textColor = .label
         textView.font = UIFont.preferredFont(forTextStyle: .body)
         textView.delegate = context.coordinator
         self.height = textView.contentSize.height
@@ -35,13 +35,12 @@ struct MultilineTextField: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: UITextView, context: UIViewRepresentableContext<MultilineTextField>) {
-        
+        uiView.text = text
     }
     
     class Coordinator: NSObject, UITextViewDelegate {
         
         let parent: MultilineTextField
-        var isInitial: Bool = true
         
         init(parent: MultilineTextField) {
             self.parent = parent
@@ -50,23 +49,15 @@ struct MultilineTextField: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             self.parent.text = textView.text
                 .trimmingCharacters(in: .whitespaces)
-                .trimmingCharacters(in: .controlCharacters)
                 .trimmingCharacters(in: .illegalCharacters)
             self.parent.height = textView.contentSize.height
-        }
-        
-        func textViewDidBeginEditing(_ textView: UITextView) {
-            if isInitial {
-                textView.text = ""
-                isInitial = false
-            }
-            textView.textColor = .label
-        }
-        
-        func textViewDidEndEditing(_ textView: UITextView) {
             if self.parent.onEditingChanged != nil {
                 self.parent.onEditingChanged!()
             }
+        }
+        
+        func textViewDidBeginEditing(_ textView: UITextView) {
+
         }
         
     }
