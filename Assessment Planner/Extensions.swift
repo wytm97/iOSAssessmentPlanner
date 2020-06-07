@@ -97,7 +97,7 @@ extension Date {
     func resetSeconds() -> Date? {
         let calendar = Calendar.current
         var components = calendar.dateComponents(
-            [.year, .month, .day, .hour, .minute, .second],
+            [.year, .month, .day, .hour, .minute, .second, .nanosecond],
             from: self
         )
         components.second = 0
