@@ -246,6 +246,30 @@ struct AssessmentManageView: View {
         
         hadCalendarEvent = self.assessment!.addToCalendar
         
+        // if add to calendar is present then check whether the calendar
+        // event is present in the calendar event store. if not then set
+        // state back to default values and reflect the changes in the model.
+        
+        if addToCalendar && self.assessment!.eventIdentifier! != "" {
+            executeIfHasPermission {
+                if !CalendarManager.shared.hasSuchEvent(id: self.assessment!.eventIdentifier!) {
+                    DispatchQueue.main.async {
+                        print("event is not present. defaulting calendar event state")
+                        // reset current state
+                        self.addToCalendar = false
+                        self.hadCalendarEvent = false
+                        self.selectedReminder = 0
+                        // reset model
+                        self.assessment!.eventIdentifier = ""
+                        self.assessment!.addToCalendar = false
+                        self.assessment?.reminderBefore = AlarmOffset.none.rawValue
+                        try? self.moc.save()
+                        self.moc.refreshAllObjects()
+                    }
+                }
+            }
+        }
+        
     }
     
     func resolveAddToCalendarDesciption() -> String {

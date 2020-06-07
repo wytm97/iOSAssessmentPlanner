@@ -194,6 +194,30 @@ struct TaskManageView: View {
         
         self.hadCalendarEvent = self.task!.addToCalendar
         
+        // if add to calendar is present then check whether the calendar
+        // event is present in the calendar event store. if not then set
+        // state back to default values and reflect the changes in the model.
+        
+        if addToCalendar && self.task!.eventIdentifier! != "" {
+            executeIfHasPermission {
+                if !CalendarManager.shared.hasSuchEvent(id: self.task!.eventIdentifier!) {
+                    DispatchQueue.main.async {
+                        print("event is not present. defaulting calendar event state")
+                        // reset current state
+                        self.addToCalendar = false
+                        self.hadCalendarEvent = false
+                        self.selectedReminder = 0
+                        // reset model
+                        self.task!.eventIdentifier = ""
+                        self.task!.addToCalendar = false
+                        self.task?.reminderBefore = AlarmOffset.none.rawValue
+                        try? self.moc.save()
+                        self.moc.refreshAllObjects()
+                    }
+                }
+            }
+        }
+        
     }
     
     func getEnclosedRange() -> ClosedRange<Date> {

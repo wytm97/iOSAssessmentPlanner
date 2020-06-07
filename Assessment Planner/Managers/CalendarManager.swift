@@ -178,6 +178,11 @@ public class CalendarManager {
         }
     }
     
+    func hasSuchEvent(id: String) -> Bool {
+        let event = eventStore.event(withIdentifier: id)
+        return event != nil
+    }
+    
     // MARK: Utility functions
     
     private func eventAlreadyExists(_ eventToAdd: EKEvent) -> Bool {
