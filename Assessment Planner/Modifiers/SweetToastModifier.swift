@@ -35,7 +35,7 @@ struct SweetToastModifier: ViewModifier {
                             ).multilineTextAlignment(.leading).lineLimit(2)
                         }
                         .frame(width: geometry.size.width * 0.3)
-                        .foregroundColor(Color.white)
+                        .foregroundColor(Color.black)
                         .padding(10)
                         .background(self.data.type.tintColor)
                         .cornerRadius(8)

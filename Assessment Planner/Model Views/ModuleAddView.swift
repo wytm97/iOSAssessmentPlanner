@@ -10,19 +10,16 @@ import SwiftUI
 
 struct ModuleAddView: View {
     
-    @Environment(\.managedObjectContext) var managedObjectContext
-    @EnvironmentObject var appState: GlobalState
+    @Environment(\.managedObjectContext) var moc
+    @EnvironmentObject var message: AlertManager
+    var moduleLevels: [String] = ModuleLevel.values()
+    
     @Binding var show: Bool
-    
-    // MARK: Form state variables
-    
     @State var moduleName = ""
     @State var moduleCode = ""
     @State var moduleLeader = ""
     @State var selectedLevel: Int = 0
     @State var shouldDisableSubmit: Bool = true
-    
-    var moduleLevels: [String] = ModuleLevel.values()
     
     // MARK: View Declaractions
     
@@ -36,42 +33,26 @@ struct ModuleAddView: View {
                 codeField
                 levelField
                 leaderField
-        }.onAppear {
-            DispatchQueue.main.asyncAfter(
-                deadline: .now(),
-                execute: DispatchWorkItem {
-                    self.checkFormValidity()
-            })
         }
     }
     
     var nameField: some View {
         FormElementWrapper {
-            Text("Module Name")
-                .font(.headline)
-            TextField(
-                "Mobile Native Programming",
-                text: $moduleName,
-                onEditingChanged: { _ in self.checkFormValidity() }
-            ).font(.body)
+            Text("Module Name").font(.headline)
+            TextField("Mobile Native Programming", text: $moduleName).font(.body)
         }
     }
     
     var codeField: some View {
         FormElementWrapper {
             Text("Module Code").font(.headline)
-            TextField(
-                "6COSC004W",
-                text: $moduleCode,
-                onEditingChanged: { _ in self.checkFormValidity() }
-            )
+            TextField("6COSC004W", text: $moduleCode)
         }
     }
     
     var levelField: some View {
         FormElementWrapper {
-            Text("Module Level")
-                .font(.headline)
+            Text("Module Level").font(.headline)
             Picker(selection: $selectedLevel, label: Text("Module Level")) {
                 ForEach(0..<self.moduleLevels.count) { i in
                     Text(self.moduleLevels[i]).tag(i)
@@ -84,13 +65,8 @@ struct ModuleAddView: View {
     
     var leaderField: some View {
         FormElementWrapper {
-            Text("Module Leader")
-                .font(.headline)
-            TextField(
-                "Guhanathan Poravi",
-                text: $moduleLeader,
-                onEditingChanged: { _ in self.checkFormValidity() }
-            )
+            Text("Module Leader").font(.headline)
+            TextField("Guhanathan Poravi", text: $moduleLeader)
         }
     }
     
@@ -102,47 +78,51 @@ struct ModuleAddView: View {
         /// properties here. This is because we assign them automatically when creating a new
         /// `Module` instance.
         
-        let module = Module(context: self.managedObjectContext)
-        module.code = moduleCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        module.name = moduleName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let module = Module(context: self.moc)
+        
+        module.code = moduleCode
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: .controlCharacters)
+            .trimmingCharacters(in: .illegalCharacters)
+        module.name = moduleName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: .controlCharacters)
+            .trimmingCharacters(in: .illegalCharacters)
         module.level = moduleLevels[selectedLevel]
-        module.leader = moduleLeader.trimmingCharacters(in: .whitespacesAndNewlines)
+        module.leader = moduleLeader
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: .controlCharacters)
+            .trimmingCharacters(in: .illegalCharacters)
         module.assessments = []
         
         do {
-            try self.managedObjectContext.save()
+            try self.moc.save()
             self.show = false
-            self.appState.showToast(
+            self.message.toast(
                 title: "Module Created",
-                detail: "You have successfully created \(module.code!)-\(module.name!) module",
+                message: "You have successfully created \(module.code!)-\(module.name!) module",
                 type: .success
             )
         } catch let error {
             print(error)
-            self.appState.showAlert(title: "Error", message: error.localizedDescription)
+            self.message.alert(title: "Error", message: error.localizedDescription)
         }
         
     }
     
-    func checkFormValidity() -> Void {
-        let isNameValid = moduleName.matchesExact("^[ a-zA-Z\\d_.\\-]{3,40}$") // 3..40 mix char ascii
-        let isCodeValid = moduleCode.matchesExact("^[ a-zA-Z\\d_.\\-]{3,15}$") // 3..15 mix char ascii
-        let isLeaderNameValid = moduleLeader.matchesExact("^[ a-zA-Z_.]{3,40}$") // name should only have alphabetic
-        let isLevelValid = selectedLevel >= 0 && selectedLevel <= 5 // 0..5
-        self.shouldDisableSubmit = (
-            !isNameValid ||
-                !isCodeValid ||
-                !isLeaderNameValid ||
-                !isLevelValid
-        )
+    // MARK: Validators
+    
+    func isFormValid() -> Void {
+        //        let isNameValid = moduleName.matchesExact("^[ a-zA-Z\\d_.\\-]{3,40}$") // 3..40 mix char ascii
+        //        let isCodeValid = moduleCode.matchesExact("^[ a-zA-Z\\d_.\\-]{3,15}$") // 3..15 mix char ascii
+        //        let isLeaderNameValid = moduleLeader.matchesExact("^[ a-zA-Z_.]{3,40}$") // name should only have alphabetic
+        //        let isLevelValid = selectedLevel >= 0 && selectedLevel <= 5 // 0..5
+        //        self.shouldDisableSubmit = (
+        //            !isNameValid ||
+        //                !isCodeValid ||
+        //                !isLeaderNameValid ||
+        //                !isLevelValid
+        //        )
     }
     
-}
-
-struct ModuleManageView_Previews: PreviewProvider {
-    static var previews: some View {
-        ModuleAddView(
-            show: .constant(true)
-        )
-    }
 }

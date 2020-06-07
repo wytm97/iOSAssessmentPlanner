@@ -14,6 +14,7 @@ struct AssessmentDetails: View {
     
     var body: some View {
         FormModalWrapper(
+            cancelButtonText: "Close",
             showSubmitButton: false,
             submitButtonText: "",
             onSubmit: {},
@@ -34,9 +35,11 @@ struct AssessmentDetails: View {
         Group {
             VStack(alignment: .leading, spacing: 5) {
                 KeyValueText(key: "Name", value: "\(assessment.name!)")
-                KeyValueText(key: "Parent Module", value: "\(assessment.module!.name!)")
-                KeyValueText(key: "Level", value: "\(assessment.module!.level!)")
                 KeyValueText(key: "Priority", value: "\(assessment.priority!)")
+                KeyValueText(key: "Level", value: "\(assessment.module!.level!)")
+                KeyValueText(key: "Module", value: "\(assessment.module!.name!)")
+                KeyValueText(key: "Module Leader", value: "\(assessment.module!.leader!)")
+                KeyValueText(key: "Module Code", value: "\(assessment.module!.code!)")
             }
             .padding(10)
             .frame(minWidth: 0, maxWidth: .infinity)
@@ -63,7 +66,7 @@ struct AssessmentDetails: View {
             VStack(alignment: .leading, spacing: 5) {
                 KeyValueText(key: "Hand-in date", value: "\(Utils.dateToDetailedString(assessment.handIn!))")
                 KeyValueText(key: "Due date", value: "\(Utils.dateToDetailedString(assessment.due!))")
-                KeyValueText(key: "Days allocated", value: "\(days) days and \(hours) hours")
+                KeyValueText(key: "Days allocated", value: "\(days) days\(hours != 0 ? " and \(hours) hours" : "")")
             }
             .padding(10)
             .frame(minWidth: 0, maxWidth: .infinity)
@@ -118,7 +121,6 @@ struct AssessmentDetails: View {
             VStack(alignment: .leading, spacing: 5) {
                 KeyValueText(key: "Added to Calendar Events?", value: "\(assessment.addToCalendar ? "Yes" : "No")")
                 KeyValueText(key: "Reminder Before Starting the Event", value: "\(reminder)")
-                
             }
             .padding(10)
             .frame(minWidth: 0, maxWidth: .infinity)
@@ -131,7 +133,6 @@ struct AssessmentDetails: View {
             VStack(alignment: .leading, spacing: 5) {
                 KeyValueText(key: "Created at", value: "\(Utils.dateToDetailedString(assessment.createdAt!))")
                 KeyValueText(key: "Last Updated at", value: "\(Utils.dateToDetailedString(assessment.updatedAt!))")
-                
             }
             .padding(10)
             .frame(minWidth: 0, maxWidth: .infinity)

@@ -11,7 +11,7 @@ import SwiftUI
 struct FilteredAssessmentList: View {
     
     @Environment(\.managedObjectContext) var moc
-    @EnvironmentObject var appState: GlobalState
+    @EnvironmentObject var message: AlertManager
     @FetchRequest var assessments: FetchedResults<Assessment>
     
     init(priorityFilter: String?, moduleFilter: Module?) {
@@ -61,17 +61,23 @@ struct FilteredAssessmentList: View {
         // Determine the selected assessment instance.
         let ass: Assessment = assessments[indexes[0]]
         
-        appState.showAlert(conf: AlertConfiguration(
+        message.alert(configuration: AlertConfig(
             title: "Delete \(ass.name!)?",
-            message: "Are you sure you want to delete this assessment? You cannot undo this action.",
-            confirmButtonText: "Yes",
-            confirmCallback: {
-                CalendarManager.shared.deleteCalendarEventAsync(id: String(ass.eventIdentifier!))
-                self.moc.delete(ass)
-                try? self.moc.save()
-                self.moc.refreshAllObjects()
-        }))
+            message: "Are you sure you want to delete this assessment? you cannot undo this action.",
+            confirmText: "Delete",
+            confirmCallback: { self.goDelete(ass) },
+            confirmIsDestructive: true,
+            cancelIsVisible: true,
+            cancelText: "Cancel")
+        )
         
+    }
+    
+    func goDelete(_ ass: Assessment) -> Void {
+        CalendarManager.shared.deleteCalendarEventAsync(id: String(ass.eventIdentifier!))
+        self.moc.delete(ass)
+        try? self.moc.save()
+        self.moc.refreshAllObjects()
     }
     
 }

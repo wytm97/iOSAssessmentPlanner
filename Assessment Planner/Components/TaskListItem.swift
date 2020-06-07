@@ -11,7 +11,6 @@ import SwiftUI
 struct TaskListItem: View {
     
     @Environment(\.colorScheme) var colorScheme: ColorScheme
-    
     var didSaveSomething = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     
     // MARK: Struct params
@@ -55,18 +54,18 @@ struct TaskListItem: View {
                     miterLimit: .infinity,
                     dash: [20, task.progress == 100 ? 5 : 0],
                     dashPhase: 0)
+            ).foregroundColor(Color.gray)
+        ).onReceive(didSaveSomething, perform: { _ in
+            self.checkAndStartTimer()
+            if self.task.due != nil && self.task.handIn != nil {
+                self.updateProgress()
+            }
+        }).onAppear {
+            self.updateProgress()
+            DispatchQueue.main.asyncAfter(
+                deadline: .now(),
+                execute: DispatchWorkItem { self.checkAndStartTimer() }
             )
-                .foregroundColor(Color.gray)
-        )
-            .onReceive(didSaveSomething, perform: { _ in
-                self.checkAndStartTimer()
-            }).onAppear {
-                let (_, percentage) = Utils.getTaskDaysRemainingAndElapedPercentage(self.task)
-                self.progress = Float(percentage) / 100
-                DispatchQueue.main.asyncAfter(
-                    deadline: .now(),
-                    execute: DispatchWorkItem { self.checkAndStartTimer() }
-                )
         }.onDisappear {
             self.trigger = false
             self.timer.upstream.connect().cancel()
@@ -77,13 +76,9 @@ struct TaskListItem: View {
     var taskQuickOptions: some View {
         VStack {
             CheckBoxField(
-                size: 25,
+                size: 30,
                 marked: self.task.progress == 100,
-                onAction: { (isOn) in
-                    withAnimation(.default) {
-                        self.onCompleteClick(self.id, self.task, isOn)
-                    }
-            }
+                onAction: { (isOn) in withAnimation(.default) { self.onCompleteClick(self.id, self.task, isOn)  } }
             )
         }
     }
@@ -92,7 +87,7 @@ struct TaskListItem: View {
         VStack(alignment: .leading) {
             HStack(alignment: .center) {
                 Text("\(days) Days, \(hours) Hours, \(minutes) Minutes, \(seconds) Seconds Remaining")
-                    .font(.caption)
+                    .font(.callout).fontWeight(.light)
                     .onReceive(timer) { (input) in
                         if self.trigger {
                             self.updateCountDown()
@@ -140,15 +135,17 @@ struct TaskListItem: View {
             Button(action: { self.onEditClick(self.id, self.task) }) {
                 VStack(alignment: .center, spacing: 5) {
                     Image(systemName: "square.and.pencil")
-                    //Text("Edit")
                 }.font(.body)
             }
             .foregroundColor(.accentColor)
             Divider()
-            Button(action: { self.onDeleteClick(self.id, self.task) }) {
+            Button(action: {
+                withAnimation {
+                    self.onDeleteClick(self.id, self.task)
+                }
+            }) {
                 VStack(alignment: .center, spacing: 5) {
                     Image(systemName: "trash")
-                    //Text("Delete")
                 }.font(.body)
             }
             .foregroundColor(.red)
@@ -178,6 +175,13 @@ struct TaskListItem: View {
         if days+hours+minutes+seconds == 0 {
             trigger = false
         }
+    }
+    
+    // MARK: Progress Updators
+    
+    func updateProgress() -> Void {
+        let (_, percentage) = Utils.getTaskDaysRemainingAndElapedPercentage(self.task)
+        self.progress = Float(percentage) / 100
     }
     
 }

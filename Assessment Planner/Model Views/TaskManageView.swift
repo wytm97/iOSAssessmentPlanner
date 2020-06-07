@@ -11,9 +11,13 @@ import Combine
 
 struct TaskManageView: View {
     
-    @EnvironmentObject var appState: GlobalState
-    @Environment(\.managedObjectContext) var managedObjectContext
+    // MARK: Pre-Compile the Regex Patterns
     
+    private let NAME_REGEX = try? NSRegularExpression(pattern: "^[ a-zA-Z\\d_.\\-]{3,50}$")
+    private let RANGE_0_TO_100_REGEX = try? NSRegularExpression(pattern: "^(?:100|[1-9][0-9]|[0-9])$")
+    
+    @EnvironmentObject var handler: AlertManager
+    @Environment(\.managedObjectContext) var moc
     @State var reminderList: [String] = AlarmOffset.rawValues()
     
     // MARK: FormField variables
@@ -25,6 +29,7 @@ struct TaskManageView: View {
     @State var dueDate: Date = Date()
     @State var progress: Double = 0
     @State var selectedReminder: Int = 0
+    @State var hadCalendarEvent: Bool = false
     
     // MARK: Assessment belonging this task
     
@@ -32,23 +37,20 @@ struct TaskManageView: View {
     
     // MARK: Editing transformer state (Optional)
     
-    @State var afterEditing: ((_ task: Task) -> Void)? = nil
     @State var editing: Bool = false
     @State var task: Task? = nil
-    @State var hadCalendarEvent: Bool = false
     
     // MARK: Dynamic state properties of the view
     
     @Binding var show: Bool
-    @State var shouldDisableSubmit: Bool = true
     
     // MARK: View components
     
     var body: some View {
         FormModalWrapper(
             submitButtonText: editing ? "Save" : "Add",
-            onSubmit: editing ? self.onSaveButtonClick : self.onAddButtonClick,
-            disableSubmit: $shouldDisableSubmit,
+            onSubmit: editing ? self.onSaveButtonClicked : self.onAddButtonClicked,
+            disableSubmit: .constant(false),
             show: $show,
             title: editing ? "Editing: \(self.task!.name!)" : "Create New Task"
         ) {
@@ -62,16 +64,13 @@ struct TaskManageView: View {
                 progressFormField
             }
         }.onAppear {
-            if self.editing {
-                /// Validate invariant
-                assert(self.task != nil, "nil task! cannot edit")
+            if self.editing && self.task != nil {
                 /// Mutate the state back to old properties. This a delayed task
                 /// not to conflict with the rendering process.
                 DispatchQueue.main.asyncAfter(
                     deadline: .now(),
                     execute: DispatchWorkItem {
-                        self.mapObjectToState()
-                        self.checkFormValidity()
+                        self.mapFromExistingModel()
                     }
                 )
             }
@@ -83,8 +82,7 @@ struct TaskManageView: View {
             Text("Task Name").font(.headline)
             TextField(
                 "Create Master Detail View",
-                text: $name,
-                onEditingChanged: { _ in self.checkFormValidity() }
+                text: $name
             )
         }.frame(minWidth: 0, maxWidth: .infinity)
     }
@@ -95,8 +93,7 @@ struct TaskManageView: View {
                 .font(.headline)
             TextField(
                 "Enter notes here....",
-                text: $notes,
-                onEditingChanged: { _ in self.checkFormValidity() }
+                text: $notes
             )
                 .lineLimit(nil)
                 .multilineTextAlignment(.leading)
@@ -148,7 +145,7 @@ struct TaskManageView: View {
             HStack {
                 DatePicker(
                     selection: $handInDate,
-                    in: self.getValidRange(),
+                    in: self.getEnclosedRange(),
                     displayedComponents: [.hourAndMinute, .date],
                     label: { Text("Task Start Date") }
                 )
@@ -165,7 +162,7 @@ struct TaskManageView: View {
             HStack {
                 DatePicker(
                     selection: $dueDate,
-                    in: self.getValidRange(),
+                    in: self.getEnclosedRange(),
                     displayedComponents: [.hourAndMinute, .date],
                     label: { Text("Task Due Date") }
                 )
@@ -178,26 +175,15 @@ struct TaskManageView: View {
     
     var progressFormField: some View {
         FormElementWrapper {
-            Text("Task Progress (%)")
+            Text("Task Progress (\(Int(progress))%)")
                 .font(.headline)
-            HStack(alignment: .center) {
-                Text("\(Int(progress))%")
-                    .font(.headline)
-                    //.fontWeight(.light)
-                    .padding()
-                    .background(
-                        Circle().foregroundColor(Color.green)
-                )
-            }.frame(minWidth: 0, maxWidth: .infinity)
-            Slider(value: $progress, in: 0...100, step: 1, onEditingChanged: {_ in
-                self.checkFormValidity()
-            })
+            Slider(value: $progress, in: 0...100, step: 1)
         }
     }
     
     // MARK: Convenient functions
     
-    func mapObjectToState() -> Void {
+    func mapFromExistingModel() -> Void {
         
         name = self.task!.name!
         addToCalendar = self.task!.addToCalendar
@@ -211,151 +197,83 @@ struct TaskManageView: View {
         
     }
     
-    func executeIfHasPermission(task: @escaping () -> Void) -> Void {
-        CalendarManager.shared.doCheckPermissions { (response: CalendarManagerResponse) in
-            if response == .success {
-                task()
-            } else if response == .error(.calendarAccessDeniedOrRestricted) {
-                self.appState.showAlert(
-                    title: "Access Denied",
-                    message: "Please grant access to the calendar. Settings > Privacy > Assessment Planner > Calendar"
-                )
-            } else {
-                self.appState.showAlert(
-                    title: "Unexpected Error",
-                    message: "Cannot access to calendar application."
-                )
-            }
-        }
-    }
-    
-    func getValidRange() -> ClosedRange<Date> {
+    func getEnclosedRange() -> ClosedRange<Date> {
         var dateClosedRange: ClosedRange<Date> {
-            let min = Calendar.current.date(byAdding: .second, value: -1, to: self.assessment.handIn!)!
-            let max = Calendar.current.date(byAdding: .second, value: 1, to: self.assessment.due!)!
+            let min = Calendar.current.date(byAdding: .second, value: -1, to: assessment.handIn!)!
+            let max = Calendar.current.date(byAdding: .second, value: 1, to: assessment.due!)!
             return min...max
         }
         return dateClosedRange
     }
     
-    // MARK: Event handlers
+    // MARK: Event Handlers
     
-    func onAddButtonClick() -> Void {
-        
-        /// check if the date range is out of order
-        if !checkIfDatesAreValid() {
-            self.appState.showAlert(
-                title: "Invalid Date Range",
-                message: "Date range is out of order! Make sure hand-in date is always less than the due date."
-            )
-            return
-        }
+    func onAddButtonClicked() -> Void {
         
         if addToCalendar {
-            /// this block executes when user has selected a calendar
-            /// event and a reminder offset.
-            self.executeIfHasPermission {
-                CalendarManager.shared.createEvent(CalendarEvent(
-                    title: self.name,
-                    startDate: self.handInDate,
-                    endDate: self.dueDate,
-                    notes: self.notes,
-                    alarmOffset: AlarmOffset.fromRawValue(str: self.reminderList[self.selectedReminder])
-                )) { (res: CalendarManagerResponse) in
-                    
+            executeIfHasPermission {
+                CalendarManager.shared.createEvent(self.constructCalendarEvent()) { (res: CalendarManagerResponse) in
                     if case .created(let identifier) = res {
-                        self.createTaskModel(identifier: identifier)
+                        self.__createTaskModel(identifier: identifier)
                     } else if res == .error(.eventAlreadyExistsInCalendar) {
-                        self.appState.showAlert(
+                        self.handler.alert(
                             title: "Duplicate Event",
-                            message: "There's a event already in the caledar with the same name, notes, date ranges, and alarms!"
+                            message: "There's a event already in the caledar with the same name, notes, date, and alarms!"
                         )
                     } else {
-                        self.appState.showAlert(
+                        self.handler.alert(
                             title: "Cannot Create Calendar Event",
                             message: "Failed to create calendar event and therefore cannot create this task!"
                         )
                     }
-                    
                 }
             }
         } else {
-            /// If this block executes it means user did not selected any
-            /// calendar events. We can create a clean task.
-            self.createTaskModel(identifier: nil)
+            self.__createTaskModel(identifier: nil)
         }
         
     }
     
-    func onSaveButtonClick() -> Void {
+    func onSaveButtonClicked() -> Void {
         
-        /// Check if the date range is out of order
-        if !checkIfDatesAreValid() {
-            self.appState.showAlert(
-                title: "Invalid Date Range",
-                message: "Date range is out of order! Make sure hand-in date is always less than the due date."
-            )
-            return
-        }
-        
-        /// `DELETE EVENT AND UPDATE MODEL` remove the event from the task and the calendar.
-        if !addToCalendar && self.hadCalendarEvent {
-            self.selectedReminder = reminderList.firstIndex(of: AlarmOffset.none.rawValue)!
-            self.executeIfHasPermission {
+        // DELETE THE CALENDAR EVENT AND UPDATE THE MODEL
+        if !addToCalendar && hadCalendarEvent {
+            executeIfHasPermission {
                 CalendarManager.shared.deleteEvent(self.task!.eventIdentifier!) { (res) in
-                    /// no matter whats the response is we should force remove the eventIdentifier and update it in the model.
+                    /// No matter whats the response is we should force remove the eventIdentifier from the
+                    /// existing model and save the changes.
                     self.task!.eventIdentifier = ""
-                    self.updateTaskModel()
-                    print("task: removed calendar event")
+                    self.__updateTaskModel()
                 }
             }
             return
         }
         
-        /// `CREATE EVENT AND UPDATE MODEL` create a new calendar event for this task
-        if addToCalendar && !self.hadCalendarEvent {
-            self.executeIfHasPermission {
-                let event = CalendarEvent(
-                    title: self.name,
-                    startDate: self.handInDate,
-                    endDate: self.dueDate,
-                    notes: self.notes,
-                    alarmOffset: AlarmOffset.fromRawValue(str: self.reminderList[self.selectedReminder])
-                )
-                CalendarManager.shared.createEvent(event) { (res: CalendarManagerResponse) in
-                    /// New event is created for the existing task model now we
-                    /// can assign the identifier and proceed to save it in the
-                    /// core-data container.
+        // CREATE A CALENDAR EVENT AND UPDATE MODEL
+        if addToCalendar && !hadCalendarEvent {
+            executeIfHasPermission {
+                CalendarManager.shared.createEvent(self.constructCalendarEvent()) { (res: CalendarManagerResponse) in
                     if case .created(let identifier) = res {
                         self.task!.eventIdentifier = identifier
-                        self.updateTaskModel()
-                        print("task: created a new event in the calendar")
+                        self.__updateTaskModel()
                         return
                     }
-                    /// Failed to create and add the event to the calendar. However we still can
-                    /// save the task without the `calendar event` and the `reminder`.
-                    /// We also need to revert the current state back to default to indicate attempt was
-                    /// not successfull.
-                    if case .error(.eventNotAddedToCalendar(let message)) = res {
+                    if case .error(.eventNotAddedToCalendar( _)) = res {
                         self.addToCalendar = false
-                        self.selectedReminder = 0
-                        self.updateTaskModel()
-                        print("task: event not added to the calendar. but updated the model", message)
+                        self.__updateTaskModel()
+                        self.handler.alert(
+                            title: "Failed to Add to Calendar",
+                            message: "Please try adding this task to calendar later."
+                        )
                         return
                     }
-                    /// Detected an identical event in the calendar event store. in this case
-                    /// it's safe to leave it as it is and inform the user that event was not created
-                    /// and revert the state back to default and save the task without the
-                    /// `calendar event` and the `reminder`
                     if res == .error(.eventAlreadyExistsInCalendar) {
                         self.addToCalendar = false
-                        self.selectedReminder = 0
-                        self.updateTaskModel()
-                        self.appState.showAlert(
-                            title: "Cannot Create Calendar Event",
-                            message: "There's a identical event in the calendar. Therefore cannot create a event for this task."
+                        self.__updateTaskModel()
+                        self.handler.alert(
+                            title: "Duplicate Event",
+                            message: "Didn't create any new event because one is already created."
                         )
-                        print("task: event not added to the calendar because it already exists!")
                         return
                     }
                 }
@@ -363,150 +281,117 @@ struct TaskManageView: View {
             return
         }
         
-        /// Optimized check if need to be updated
-        if addToCalendar && self.hadCalendarEvent {
-            
-            /// first we check whether we need to do some changes to the
-            /// calendar event by simply checking the properties used for
-            /// creating a calendar event.
-            
-            if  self.task!.name! != name ||
-                self.task!.reminderBefore != reminderList[self.selectedReminder] ||
-                self.task!.handIn!.compare(handInDate) != .orderedSame ||
-                self.task!.due!.compare(dueDate) != .orderedSame ||
-                self.task!.notes! != notes
-            {
-                
-                /// yes there are changes in the state so we need to update the calendar event.
-                
-                self.executeIfHasPermission {
-                    let event = CalendarEvent(
-                        title: self.name,
-                        startDate: self.handInDate,
-                        endDate: self.dueDate,
-                        notes: self.notes,
-                        alarmOffset: AlarmOffset.fromRawValue(str: self.reminderList[self.selectedReminder])
-                    )
-                    CalendarManager.shared.updateEvent(
-                        eventIdentifier: self.task!.eventIdentifier!,
-                        updatedEvent: event
-                    ) { (res) in
-                        /// for some reason the event for this task is not existed in the
-                        /// event store, then simply just proceed to assign a new `eventIdentifier`
-                        if case .created(let identifier) = res {
-                            self.task!.eventIdentifier = identifier
-                            self.updateTaskModel() /// update with new identifier
-                            print("task: created a brand new event and assigned the new event id")
-                        } else if res == .updated {
-                            self.updateTaskModel()
-                            print("task: updated the calendar event")
-                        } else if res == .error(.eventFailedToUpdate) {
-                            self.appState.showAlert(
-                                title: "Failed to Update",
-                                message: "Task did not save properly!"
-                            )
-                            print("task: failed to update the calendar event")
-                        }
+        // UPDATE THE EXISTING CALENDAR EVENT AND UPDATE THE MODEL
+        if addToCalendar && hadCalendarEvent && calendarPropsChanged() {
+            executeIfHasPermission {
+                CalendarManager.shared.updateEvent(
+                    eventIdentifier: self.task!.eventIdentifier!,
+                    updatedEvent: self.constructCalendarEvent()
+                ) { (res) in
+                    if case .created(let identifier) = res {
+                        self.task!.eventIdentifier = identifier
+                        self.__updateTaskModel()
+                    } else if res == .updated {
+                        self.__updateTaskModel()
+                    } else if res == .error(.eventFailedToUpdate) {
+                        self.handler.alert(
+                            title: "Failed to Update",
+                            message: "Task did not save properly!"
+                        )
                     }
                 }
-                
-            } else if Double(self.task!.progress) != Double(progress) {
-                /// if this block executes it means we need to update this task
-                /// because progress property got changed!
-                self.updateTaskModel()
             }
             return
-            
         }
         
-        if  self.task!.name! != name ||
-            self.task!.reminderBefore != reminderList[self.selectedReminder] ||
-            self.task!.handIn!.compare(handInDate) != .orderedSame ||
-            self.task!.due!.compare(dueDate) != .orderedSame ||
-            self.task!.notes! != notes ||
-            Double(self.task!.progress) != Double(progress)
-        {
-            self.updateTaskModel()
-            print("task: updated by default")
-        } else {
-            self.show = false
-            self.appState.showToast(
-                title: "No Changes",
-                detail: "You didn't make any changes to update the task.",
-                type: .info
-            )
+        // OPTIMIZED CHECK IF NEEDED TO BE UPDATED
+        if (addToCalendar && hadCalendarEvent && nonCalendarPropsChanged()) || anyPropChanged() {
+            self.__updateTaskModel()
+            return
         }
+        
+        // NO UPDATES
+        self.show = false
+        self.handler.toast(
+            title: "No Changes",
+            message: "You didn't make any changes to update the task.",
+            type: .info
+        )
         
     }
     
     // MARK: Mutating Functions
     
-    func updateTaskModel() -> Void {
+    private func __updateTaskModel() -> Void {
         
-        task!.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let (start, end) = getTimeNormalized() /// Normalize the selected dates.
+        
+        task!.name = name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: .controlCharacters)
+            .trimmingCharacters(in: .illegalCharacters)
         task!.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         task!.addToCalendar = addToCalendar
         task!.progress = Int16(progress)
-        task!.handIn = handInDate
-        task!.due = dueDate
+        task!.handIn = start
+        task!.due = end
         task!.reminderBefore = reminderList[selectedReminder]
+        // updatedAt is attached in a lifecycle hook
         
         do {
-            self.managedObjectContext.refresh(task!, mergeChanges: true)
-            self.managedObjectContext.refreshAllObjects()
-            try managedObjectContext.save()
+            moc.refresh(task!, mergeChanges: true)
+            try moc.save()
             self.show = false
-            if self.editing && self.afterEditing != nil {
-                self.afterEditing!(self.task!)
-            }
-            self.appState.showToast(
+            moc.refreshAllObjects()
+            handler.toast(
                 title: "Updated Task",
-                detail: "You have successfully updated \(self.task!.name!) Task.",
+                message:"You have successfully updated \(task!.name!) Task.",
                 type: .success
             )
         } catch let error {
-            self.show = false
-            self.appState.showAlert(
-                title: "Couldn't update task",
-                message: error.localizedDescription
-            )
+            handler.alert(title: "Couldn't update task", message: error.localizedDescription)
         }
         
     }
     
-    func createTaskModel(identifier: String?) -> Void {
+    private func __createTaskModel(identifier: String?) -> Void {
         
         if addToCalendar && identifier == nil {
-            self.appState.showAlert(
+            handler.alert(
                 title: "Unknown Identifier",
-                message: "Couldn't create calendar event for the task!"
+                message: "Failed create calendar event and therefore unable to create assessment."
             )
             return
         }
         
-        let newTask = Task(context: self.managedObjectContext)
+        let (start, end) = getTimeNormalized() /// Normalize the selected dates.
+        let newTask = Task(context: moc)
         
-        newTask.due = self.dueDate
-        newTask.name = self.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        newTask.notes = self.notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        newTask.addToCalendar = self.addToCalendar
+        newTask.name = name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: .controlCharacters)
+            .trimmingCharacters(in: .illegalCharacters)
+        newTask.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        newTask.addToCalendar = addToCalendar
         newTask.progress = 0
-        newTask.reminderBefore = self.addToCalendar ? self.reminderList[self.selectedReminder] : AlarmOffset.none.rawValue
-        newTask.handIn = handInDate
+        newTask.reminderBefore = addToCalendar ? reminderList[selectedReminder] : AlarmOffset.none.rawValue
+        newTask.handIn = start
+        newTask.due = end
         newTask.eventIdentifier = identifier ?? ""
         newTask.assessment = self.assessment
+        // updatedAt, createdAt, id are attached in lifecycle hooks
         
         do {
-            managedObjectContext.insert(newTask)
-            try managedObjectContext.save()
+            moc.insert(newTask)
+            try moc.save()
             self.show = false
-            self.appState.showToast(
+            handler.toast(
                 title: "Created Task",
-                detail: "You have successfully created \(newTask.name!) task.",
+                message: "You have successfully created \(newTask.name!) Task.",
                 type: .success
             )
         } catch let error {
-            self.appState.showAlert(
+            handler.alert(
                 title: "Couldn't save task",
                 message: error.localizedDescription
             )
@@ -514,22 +399,92 @@ struct TaskManageView: View {
         
     }
     
-    // MARK: Validator Functions
+    // MARK: Validators
     
-    func checkFormValidity() -> Void {
-        let isNameValid = name.matchesExact("^[ a-zA-Z\\d_.\\-]{3,50}$") // ascii, max 3...50 char
-        let isNotesValid = notes.count <= 200 // max char count is 200
-        let isProgressValid = String(Int(progress)).matchesExact("^(?:100|[1-9][0-9]|[0-9])$") // 0...100
-        self.shouldDisableSubmit = (
-            !isNameValid ||
-                !isNotesValid ||
-                !isProgressValid
-        )
+    private func isFormValid() -> Void {
+        
+//        /// Other fields are constrained inputs. There's no keyboard interactions with those fields.
+//        let isNameValid = name.matches(regex: NAME_REGEX!) /// ASCII, max 3...50 char
+//        let notesValid = notes.count <= 100 /// MAX char count is 100
+//        let isProgressValid = String(Int(progress)).matches(regex: RANGE_0_TO_100_REGEX!) /// 0...100
+//        let (start, end) = getTimeNormalized()
+//
+//        self.isInvalidForm = (
+//            !isNameValid || !notesValid || !isProgressValid ||
+//                start.compare(end) == .orderedDescending || start.compare(end) == .orderedSame
+//        )
+        
     }
     
-    func checkIfDatesAreValid() -> Bool {
-        return self.handInDate.compare(self.dueDate) == .orderedAscending ||
-            self.handInDate.compare(self.dueDate) == .orderedSame
+    private func getTimeNormalized() -> (start: Date, end: Date) {
+        
+        let rStart = Calendar.current.date(
+            byAdding: .minute,
+            value: -1,
+            to: Calendar.current.date(bySetting: .second, value: 0, of: handInDate)!
+            )!
+        let rEnd = Calendar.current.date(
+            byAdding: .minute,
+            value: -1,
+            to: Calendar.current.date(bySetting: .second, value: 0, of: dueDate)!
+            )!
+        
+        return (start: rStart, end: rEnd)
+        
+    }
+    
+    // MARK: Permissions
+    
+    private func executeIfHasPermission(task: @escaping () -> Void) -> Void {
+        CalendarManager.shared.doCheckPermissions { (response: CalendarManagerResponse) in
+            if response == .success {
+                task()
+            } else if response == .error(.calendarAccessDeniedOrRestricted) {
+                self.handler.alert(
+                    title: "Access Denied",
+                    message: "Please grant access to the calendar. Settings > Privacy > Assessment Planner > Calendar"
+                )
+            } else {
+                self.handler.alert(
+                    title: "Unexpected Error",
+                    message: "Cannot access to calendar application."
+                )
+            }
+        }
+    }
+    
+    // MARK: Helper Functions
+    
+    private func calendarPropsChanged() -> Bool {
+        return (task!.name! != name ||
+            task!.reminderBefore != reminderList[selectedReminder] ||
+            task!.handIn!.compare(handInDate) != .orderedSame ||
+            task!.due!.compare(dueDate) != .orderedSame ||
+            task!.notes! != notes)
+    }
+    
+    private func nonCalendarPropsChanged() -> Bool {
+        return task!.progress != Int(self.progress)
+    }
+    
+    private func anyPropChanged() -> Bool {
+        return (task!.name! != name ||
+            task!.reminderBefore != reminderList[selectedReminder] ||
+            task!.handIn!.compare(handInDate) != .orderedSame ||
+            task!.due!.compare(dueDate) != .orderedSame ||
+            task!.progress != Int(progress) ||
+            task!.notes! != notes)
+    }
+    
+    private func constructCalendarEvent() -> CalendarEvent {
+        let event = CalendarEvent(
+            title: self.name,
+            startDate: self.handInDate,
+            endDate: self.dueDate,
+            notes: self.notes,
+            alarmOffset: AlarmOffset.fromRawValue(str: self.reminderList[self.selectedReminder])
+        )
+        return event
     }
     
 }

@@ -20,7 +20,7 @@ struct FormElementWrapper<Content:View>: View {
         VStack(alignment: .leading) { content }
             .padding(10)
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .stroke(lineWidth: 1)
                     .foregroundColor(Color.gray)
         )

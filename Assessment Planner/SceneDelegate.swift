@@ -28,10 +28,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         //IQKeyboardManager.shared.previousNextDisplayMode = .default
         
         // Generate Synthetic Data for Demonstration
-        DemoDataGenerator.generate(managedObjectContext: context)
+        // DemoDataGenerator.generate(managedObjectContext: context)
         
         // Global App State for Message Passing
-        let appState = GlobalState()
+        let appState = AlertManager()
         
         // Create the SwiftUI view and set the context as the value for the managedObjectContext environment keyPath.
         // Add `@Environment(\.managedObjectContext)` in the views that will need the context.

@@ -10,17 +10,19 @@ import SwiftUI
 
 struct FormModalWrapper<Content:View>: View {
     
-    @EnvironmentObject var appState: GlobalState
+    @EnvironmentObject var message: AlertManager
     @Binding var show: Bool
     @Binding var disableSubmit: Bool
     
     var showSubmitButton: Bool
     var submitButtonText: String
+    var cancelButtonText: String
     var onSubmit: () -> Void
     var title: String
     var content: Content
     
     init(
+        cancelButtonText: String = "Cancel",
         showSubmitButton: Bool = true,
         submitButtonText: String = "Add",
         onSubmit: @escaping (() -> Void),
@@ -29,6 +31,7 @@ struct FormModalWrapper<Content:View>: View {
         title: String,
         @ViewBuilder content:() -> Content
     ) {
+        self.cancelButtonText = cancelButtonText
         self.showSubmitButton = showSubmitButton
         self.submitButtonText = submitButtonText
         self.onSubmit = onSubmit
@@ -49,7 +52,7 @@ struct FormModalWrapper<Content:View>: View {
             .navigationBarTitle(Text(self.title), displayMode: .inline)
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .attachAlert(isPresented: $appState.showAlert, data: appState.alertData)
+        .attachAlert(isPresented: $message.showAlert, conf: message.alertConf)
     }
     
     var submitButtonField: some View {
@@ -66,7 +69,7 @@ struct FormModalWrapper<Content:View>: View {
     var cancelButtonField: some View {
         Button(action: { self.show = false }){
             HStack {
-                Text("Cancel")
+                Text(self.cancelButtonText)
                     .foregroundColor(.red)
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.red)

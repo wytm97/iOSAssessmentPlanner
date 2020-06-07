@@ -22,7 +22,7 @@
 		24887F7D248B112E0038D875 /* Task+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F77248B112E0038D875 /* Task+CoreDataProperties.swift */; };
 		24887F80248B133D0038D875 /* SweetToastModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F7F248B133D0038D875 /* SweetToastModifier.swift */; };
 		24887F82248B14800038D875 /* TextLeftAlignModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F81248B14800038D875 /* TextLeftAlignModifier.swift */; };
-		24887F85248B14EF0038D875 /* GlobalState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F84248B14EF0038D875 /* GlobalState.swift */; };
+		24887F85248B14EF0038D875 /* AlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F84248B14EF0038D875 /* AlertManager.swift */; };
 		24887F87248B15170038D875 /* CalendarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F86248B15170038D875 /* CalendarManager.swift */; };
 		24887F89248B15480038D875 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F88248B15480038D875 /* Utils.swift */; };
 		24887F8C248B15C40038D875 /* FormElementWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24887F8B248B15C40038D875 /* FormElementWrapper.swift */; };
@@ -62,7 +62,7 @@
 		24887F77248B112E0038D875 /* Task+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Task+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		24887F7F248B133D0038D875 /* SweetToastModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SweetToastModifier.swift; sourceTree = "<group>"; };
 		24887F81248B14800038D875 /* TextLeftAlignModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextLeftAlignModifier.swift; sourceTree = "<group>"; };
-		24887F84248B14EF0038D875 /* GlobalState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalState.swift; sourceTree = "<group>"; };
+		24887F84248B14EF0038D875 /* AlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertManager.swift; sourceTree = "<group>"; };
 		24887F86248B15170038D875 /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
 		24887F88248B15480038D875 /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
 		24887F8B248B15C40038D875 /* FormElementWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormElementWrapper.swift; sourceTree = "<group>"; };
@@ -166,7 +166,7 @@
 		24887F83248B14BD0038D875 /* Managers */ = {
 			isa = PBXGroup;
 			children = (
-				24887F84248B14EF0038D875 /* GlobalState.swift */,
+				24887F84248B14EF0038D875 /* AlertManager.swift */,
 				24887F86248B15170038D875 /* CalendarManager.swift */,
 				24887F88248B15480038D875 /* Utils.swift */,
 			);
@@ -176,16 +176,16 @@
 		24887F8A248B15AD0038D875 /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				24887F8B248B15C40038D875 /* FormElementWrapper.swift */,
+				24887F9B248B17E10038D875 /* AssessmentDetails.swift */,
 				24887F8D248B16180038D875 /* AssessmentListItem.swift */,
+				24887F95248B17650038D875 /* CheckBoxField.swift */,
+				24887F99248B17BF0038D875 /* FilteredAssessmentList.swift */,
+				24887F8B248B15C40038D875 /* FormElementWrapper.swift */,
+				24887F93248B17460038D875 /* FormModalWrapper.swift */,
+				24887F9D248B180F0038D875 /* MultilineTextView.swift */,
+				24887F97248B17990038D875 /* ProgressBar.swift */,
 				24887F8F248B16760038D875 /* ProgressRing.swift */,
 				24887F91248B17000038D875 /* TaskListItem.swift */,
-				24887F93248B17460038D875 /* FormModalWrapper.swift */,
-				24887F95248B17650038D875 /* CheckBoxField.swift */,
-				24887F97248B17990038D875 /* ProgressBar.swift */,
-				24887F99248B17BF0038D875 /* FilteredAssessmentList.swift */,
-				24887F9B248B17E10038D875 /* AssessmentDetails.swift */,
-				24887F9D248B180F0038D875 /* MultilineTextView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -193,11 +193,11 @@
 		24887FA1248B19130038D875 /* Model Views */ = {
 			isa = PBXGroup;
 			children = (
-				24887FA2248B194E0038D875 /* ModuleDeleteView.swift */,
 				24887FA4248B19A70038D875 /* AssessmentManageView.swift */,
-				24887FA6248B19E50038D875 /* DetailView.swift */,
 				24887FA8248B1A2A0038D875 /* TaskManageView.swift */,
+				24887FA6248B19E50038D875 /* DetailView.swift */,
 				24887FAA248B1A550038D875 /* ModuleAddView.swift */,
+				24887FA2248B194E0038D875 /* ModuleDeleteView.swift */,
 			);
 			path = "Model Views";
 			sourceTree = "<group>";
@@ -288,7 +288,7 @@
 				24887FAB248B1A550038D875 /* ModuleAddView.swift in Sources */,
 				24887F80248B133D0038D875 /* SweetToastModifier.swift in Sources */,
 				24887F4F248B0C060038D875 /* AppDelegate.swift in Sources */,
-				24887F85248B14EF0038D875 /* GlobalState.swift in Sources */,
+				24887F85248B14EF0038D875 /* AlertManager.swift in Sources */,
 				24887F7A248B112E0038D875 /* Module+CoreDataClass.swift in Sources */,
 				24887FA7248B19E50038D875 /* DetailView.swift in Sources */,
 				24887F8E248B16180038D875 /* AssessmentListItem.swift in Sources */,

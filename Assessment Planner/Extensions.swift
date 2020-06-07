@@ -9,40 +9,6 @@
 import Foundation
 import SwiftUI
 
-extension NSRegularExpression {
-    convenience init(_ pattern: String) {
-        do {
-            try self.init(pattern: pattern)
-        } catch {
-            preconditionFailure("Illegal regular expression: \(pattern).")
-        }
-    }
-}
-
-extension NSRegularExpression {
-    func matches(_ string: String) -> Bool {
-        let range = NSRange(location: 0, length: string.utf16.count)
-        return firstMatch(in: string, options: [], range: range) != nil
-    }
-}
-
-extension String {
-    static func ~= (lhs: String, rhs: String) -> Bool {
-        guard let regex = try? NSRegularExpression(pattern: rhs) else { return false }
-        let range = NSRange(location: 0, length: lhs.utf16.count)
-        return regex.firstMatch(in: lhs, options: [], range: range) != nil
-    }
-}
-
-extension String {
-    func matchesExact(_ regex: String) -> Bool {
-        return self.range(
-            of: regex,
-            options: .regularExpression
-            ) != nil
-    }
-}
-
 extension Set {
     func elementAtIndex<T>(at: Int) -> T {
         return self[self.index(self.startIndex, offsetBy: at)] as! T
@@ -50,7 +16,7 @@ extension Set {
 }
 
 extension View {
-    func toast(data: Binding<ToastData>, show: Binding<Bool>) -> some View {
+    func attachToaster(data: Binding<ToastData>, show: Binding<Bool>) -> some View {
         self.modifier(SweetToastModifier(data: data, show: show))
     }
 }
@@ -70,15 +36,36 @@ extension Binding {
 }
 
 extension View {
-    func attachAlert(isPresented: Binding<Bool>, data: AlertConfiguration) -> some View {
+    func attachAlert(isPresented: Binding<Bool>, conf: AlertConfig) -> some View {
         self.alert(isPresented: isPresented) {
-            Alert(
-                title: Text(data.title),
-                message: Text(data.message),
-                primaryButton: .default(Text(data.confirmButtonText ?? "Okay"), action: data.confirmCallback ?? {}),
-                secondaryButton: .cancel()
-            )
+            if !conf.cancelIsVisible {
+                return Alert(
+                    title: Text(conf.title),
+                    message: Text(conf.message),
+                    dismissButton:
+                    conf.confirmIsDestructive ?
+                        .destructive(Text(conf.confirmText), action: conf.confirmCallback) :
+                        .default(Text(conf.confirmText), action: conf.confirmCallback)
+                )
+            } else {
+                return Alert(
+                    title: Text(conf.title),
+                    message: Text(conf.message),
+                    primaryButton:
+                    conf.confirmIsDestructive ?
+                        .destructive(Text(conf.confirmText), action: conf.confirmCallback) :
+                        .default(Text(conf.confirmText), action: conf.confirmCallback),
+                    secondaryButton: .cancel(Text(conf.cancelText), action: conf.cancelCallback)
+                )
+            }
         }
+    }
+}
+
+extension String {
+    func matches(regex: NSRegularExpression) -> Bool {
+        let range = NSRange(location: 0, length: self.utf16.count)
+        return regex.firstMatch(in: self, options: [], range: range) != nil
     }
 }
 

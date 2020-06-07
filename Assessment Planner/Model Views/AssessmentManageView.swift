@@ -11,14 +11,20 @@ import Combine
 
 struct AssessmentManageView: View {
     
-    @EnvironmentObject var appState: GlobalState
-    @Environment(\.managedObjectContext) var managedObjectContext
-    @FetchRequest(fetchRequest: Module.getAllModules()) var modules: FetchedResults<Module>
+    // MARK: Pre-Compile the Regex Patterns
     
+    private let NAME_REGEX = try? NSRegularExpression(pattern: "^[ a-zA-Z\\d_.\\-]{3,50}$")
+    private let RANGE_0_TO_100_REGEX = try? NSRegularExpression(pattern: "^(?:100|[1-9][0-9]|[0-9])$")
+    
+    @EnvironmentObject var handler: AlertManager
+    @Environment(\.managedObjectContext) var moc
+    @FetchRequest(fetchRequest: Module.getAllModules()) var modules: FetchedResults<Module>
     @State var reminderList: [String] = AlarmOffset.rawValues()
     @State var priorityList: [String] = AssessmentPriority.values()
+    // Needed for dynamically adjusting the `notes textview`
+    @State var mulTextFieldHeight: CGFloat = 80
+    
     @Binding var show: Bool
-    @State var mulTextFieldHeight: CGFloat = 70 /// Needed for dynamically adjusting the `notes textview`
     
     @State var selectedModule: Int = 0
     @State var name: String = ""
@@ -30,14 +36,13 @@ struct AssessmentManageView: View {
     @State var weightage: String = "0"
     @State var markAchieved: String = "0"
     @State var selectedReminder: Int = 0
-    
-    @State var shouldDisableSubmit: Bool = true
+    @State var hadCalendarEvent: Bool = false
     
     // MARK: Editing transformer state
+    // Pass down from the parent when editing an assessment
     
     @State var editing: Bool = false
     @State var assessment: Assessment? = nil
-    @State var hadCalendarEvent: Bool = false
     
     // MARK: View declaraction
     
@@ -45,7 +50,7 @@ struct AssessmentManageView: View {
         FormModalWrapper(
             submitButtonText: editing ? "Save" : "Add",
             onSubmit: editing ? self.onSaveButtonClick : self.onAddButtonClick,
-            disableSubmit: $shouldDisableSubmit,
+            disableSubmit: .constant(false),
             show: $show, title: editing ? "Editing: \(self.assessment!.name!)" : "Create New Assessment") {
                 moduleFormField
                 nameFormField
@@ -62,15 +67,13 @@ struct AssessmentManageView: View {
                 handInDateFormField
                 dueDateFormField
         }.onAppear {
-            if self.editing {
-                // Invariant
-                assert(self.assessment != nil, "nil assessment cannot edit")
-                // Mutate the state back to old properties. This a delayed task
-                // not to conflict with the rendering process.
+            if self.editing && self.assessment != nil {
+                /// Mutate the state back to old properties. This a delayed task to ensure
+                /// not to conflict with the rendering process.
                 DispatchQueue.main.asyncAfter(
                     deadline: .now(),
                     execute: DispatchWorkItem {
-                        self.mapObjectToState()
+                        self.mapFromExistingModel()
                     }
                 )
             }
@@ -229,7 +232,7 @@ struct AssessmentManageView: View {
     
     // MARK: Convenient functions
     
-    func mapObjectToState() -> Void {
+    func mapFromExistingModel() -> Void {
         
         selectedModule = self.modules.firstIndex(of: self.assessment!.module!)!
         name = self.assessment!.name!
@@ -246,147 +249,90 @@ struct AssessmentManageView: View {
         
     }
     
-    func executeIfHasPermission(task: @escaping () -> Void) -> Void {
-        CalendarManager.shared.doCheckPermissions { (response: CalendarManagerResponse) in
-            if response == .success {
-                task()
-            } else if response == .error(.calendarAccessDeniedOrRestricted) {
-                self.appState.showAlert(
-                    title: "Access Denied",
-                    message: "Please grant access to the calendar. Settings > Privacy > Assessment Planner > Calendar"
-                )
-            } else {
-                self.appState.showAlert(
-                    title: "Unexpected Error",
-                    message: "Cannot access to calendar application."
-                )
-            }
-        }
-    }
-    
-    func delayedExecution(task: @escaping () -> Void) -> Void {
-        DispatchQueue.main.asyncAfter(
-            deadline: .now() + 5,
-            execute: DispatchWorkItem { task() }
-        )
-    }
     
     // MARK: Event handlers
     
     func onAddButtonClick() -> Void {
         
-        /// check if the date range is out of order
-        if !checkIfDatesAreValid() {
-            self.appState.showAlert(
-                title: "Invalid Date Range",
-                message: "Date range is out of order! Make sure hand-in date is always less than the due date."
-            )
+        if !isFormValid() {
             return
         }
         
         if addToCalendar {
-            /// this block executes when user has selected a calendar
-            /// event and a reminder offset.
-            self.executeIfHasPermission {
-                CalendarManager.shared.createEvent(CalendarEvent(
-                    title: self.name,
-                    startDate: self.handInDate,
-                    endDate: self.dueDate,
-                    notes: self.notes,
-                    alarmOffset: AlarmOffset.fromRawValue(str: self.reminderList[self.selectedReminder])
-                )) { (res: CalendarManagerResponse) in
+            executeIfHasPermission {
+                /// This block executes when user want to add to calendar events with or without a reminder offset.
+                CalendarManager.shared.createEvent(self.constructCalendarEvent()) { (res: CalendarManagerResponse) in
                     if case .created(let identifier) = res {
-                        self.createAssessmentModel(identifier: identifier)
+                        self.__createAssessmentModel(identifier: identifier)
                     } else if res == .error(.eventAlreadyExistsInCalendar) {
-                        self.appState.showAlert(
+                        self.handler.alert(
                             title: "Duplicate Event",
-                            message: "There's a event already in the caledar with the same name, notes, date ranges, and alarms!"
+                            message: "There's a event already in the caledar with the same name, notes, date, and alarms!"
                         )
                     } else {
-                        self.appState.showAlert(
+                        self.handler.alert(
                             title: "Cannot Create Calendar Event",
-                            message: "Failed to create calendar event and therefore cannot create this  assessment!"
+                            message: "Failed to create calendar event and therefore cannot create this assessment!"
                         )
                     }
                 }
             }
         } else {
-            /// If this block executes it means user did not selected any
-            /// calendar events. We can create a clean assessment.
-            self.createAssessmentModel(identifier: nil)
+            /// If this block executes it means user did not selected any calendar events. We can create a clean assessment.
+            self.__createAssessmentModel(identifier: nil)
         }
         
     }
     
     func onSaveButtonClick() -> Void {
         
-        /// Check if the date range is out of order
-        if !checkIfDatesAreValid() {
-            self.appState.showAlert(
-                title: "Invalid Date Range",
-                message: "Date range is out of order! Make sure hand-in date is always less than the due date."
-            )
+        if !isFormValid() {
             return
         }
         
-        /// `DELETE EVENT AND UPDATE MODEL` remove the event from the assessment and the calendar.
-        if !addToCalendar && self.hadCalendarEvent {
-            self.selectedReminder = reminderList.firstIndex(of: AlarmOffset.none.rawValue)!
-            self.executeIfHasPermission {
+        // DELETE THE CALENDAR EVENT AND UPDATE THE MODEL
+        if !addToCalendar && hadCalendarEvent {
+            executeIfHasPermission {
                 CalendarManager.shared.deleteEvent(self.assessment!.eventIdentifier!) { (res) in
-                    /// no matter whats the response is we should force remove the eventIdentifier and update it in the model.
+                    /// No matter whats the response is we should force remove the eventIdentifier from the
+                    /// existing model and save the changes.
                     self.assessment!.eventIdentifier = ""
-                    self.updateAssessmentModel()
-                    print("assessment: removed calendar event")
+                    self.__updateAssessmentModel()
                 }
             }
             return
         }
         
-        /// `CREATE EVENT AND UPDATE MODEL` create a new calendar event for this assessment
-        if addToCalendar && !self.hadCalendarEvent {
-            self.executeIfHasPermission {
-                let event = CalendarEvent(
-                    title: self.name,
-                    startDate: self.handInDate,
-                    endDate: self.dueDate,
-                    notes: self.notes,
-                    alarmOffset: AlarmOffset.fromRawValue(str: self.reminderList[self.selectedReminder])
-                )
-                CalendarManager.shared.createEvent(event) { (res: CalendarManagerResponse) in
-                    /// New event is created for the existing assessment model now we
-                    /// can assign the identifier and proceed to save it in the
-                    /// core-data container.
+        // CREATE A CALENDAR EVENT AND UPDATE MODEL
+        if addToCalendar && !hadCalendarEvent {
+            executeIfHasPermission {
+                CalendarManager.shared.createEvent(self.constructCalendarEvent()) { (res: CalendarManagerResponse) in
+                    /// New event is created for the existing assessment model now we can assign the identifier and proceed to save it in the core-data container.
                     if case .created(let identifier) = res {
                         self.assessment!.eventIdentifier = identifier
-                        self.updateAssessmentModel()
-                        print("assessment: created a new event in the calendar")
+                        self.__updateAssessmentModel()
                         return
                     }
-                    /// Failed to create and add the event to the calendar. However we still can
-                    /// save the task without the `calendar event` and the `reminder`.
-                    /// We also need to revert the current state back to default to indicate attempt was
-                    /// not successfull.
-                    if case .error(.eventNotAddedToCalendar(let message)) = res {
+                    /// Failed to create and add the event to the calendar. However we still can save the task without the `calendar event` and the `reminder`. We also need
+                    /// to revert the current state back to default to indicate attempt was not successfull.
+                    if case .error(.eventNotAddedToCalendar( _)) = res {
                         self.addToCalendar = false
-                        self.selectedReminder = 0
-                        self.updateAssessmentModel()
-                        print("assessment: event not added to the calendar. but updated the model", message)
+                        self.__updateAssessmentModel()
+                        self.handler.alert(
+                            title: "Failed to Add to Calendar",
+                            message: "Please try this operation again later."
+                        )
                         return
                     }
-                    /// Detected an identical event in the calendar event store. in this case
-                    /// it's safe to leave it as it is and inform the user that event was not created
-                    /// and revert the state back to default and save the task without the
-                    /// `calendar event` and the `reminder`
+                    /// Detected an identical event in the calendar event store. in this case it's safe to leave it as it is and inform the user that event was not created and revert the state
+                    /// back to default and save the task without the `calendar event` and the `reminder`
                     if res == .error(.eventAlreadyExistsInCalendar) {
                         self.addToCalendar = false
-                        self.selectedReminder = 0
-                        self.updateAssessmentModel()
-                        self.appState.showAlert(
-                            title: "Cannot Create Calendar Event",
-                            message: "There's a identical event in the calendar. Therefore cannot create a event for this assessment."
+                        self.__updateAssessmentModel()
+                        self.handler.alert(
+                            title: "Duplicate Event",
+                            message: "Didn't create any new event because one is already created."
                         )
-                        print("assessment: event not added to the calendar because it already exists!")
                         return
                     }
                 }
@@ -394,156 +340,126 @@ struct AssessmentManageView: View {
             return
         }
         
-        /// Optimized check if need to be updated
-        if addToCalendar && self.hadCalendarEvent {
-            
-            /// first we check whether we need to do some changes to the
-            /// calendar event by simply checking the properties used for
-            /// creating a calendar event.
-            
-            if  self.assessment!.name! != name ||
-                self.assessment!.reminderBefore != reminderList[self.selectedReminder] ||
-                self.assessment!.handIn!.compare(handInDate) != .orderedSame ||
-                self.assessment!.due!.compare(dueDate) != .orderedSame ||
-                self.assessment!.notes! != notes
-            {
-                
-                // if this block executes it means we need to update the calendar event.
-                
-                self.executeIfHasPermission {
-                    CalendarManager.shared.updateEvent(
-                        eventIdentifier: self.assessment!.eventIdentifier!,
-                        updatedEvent: CalendarEvent(
-                            title: self.name,
-                            startDate: self.handInDate,
-                            endDate: self.dueDate,
-                            notes: self.notes,
-                            alarmOffset: AlarmOffset.fromRawValue(str: self.reminderList[self.selectedReminder])
-                    )) { (res) in
-                        /// for some reaason the event for this assessment is not existed in the
-                        /// event store, then simply just proceed to assign a new `eventIdentifier`
-                        if case .created(let identifier) = res {
-                            self.assessment!.eventIdentifier = identifier
-                            self.updateAssessmentModel() /// update with new identifier
-                            print("task: created a brand new event and assigned the new event id")
-                        } else if res == .updated {
-                            self.updateAssessmentModel()
-                            print("updated the calendar event")
-                        } else if res == .error(.eventFailedToUpdate) {
-                            self.appState.showAlert(
-                                title: "Failed to Update",
-                                message: "Assessment did not save properly!"
-                            )
-                            print("task: failed to update the calendar event")
-                        }
+        // UPDATE THE EXISTING CALENDAR EVENT AND UPDATE THE MODEL
+        if addToCalendar && hadCalendarEvent && cPropsChanged() {
+            executeIfHasPermission {
+                CalendarManager.shared.updateEvent(
+                    eventIdentifier: self.assessment!.eventIdentifier!,
+                    updatedEvent: self.constructCalendarEvent()
+                ) { (res) in
+                    /// For some reason the event for this assessment is not existed in the event store, then simply just proceed to assign a new `eventIdentifier`
+                    if case .created(let identifier) = res {
+                        self.assessment!.eventIdentifier = identifier
+                        self.__updateAssessmentModel() /// update with new identifier
+                    } else if res == .updated {
+                        self.__updateAssessmentModel()
+                    } else if res == .error(.eventFailedToUpdate) {
+                        self.handler.alert(
+                            title: "Failed to Update",
+                            message: "Assessment did not save properly!"
+                        )
                     }
                 }
-                
-            } else if (self.assessment!.module!.id?.uuidString != modules[selectedModule].id!.uuidString ||
-                String(self.assessment!.weightage) != weightage ||
-                String(self.assessment!.markAchieved) != markAchieved ||
-                self.assessment!.priority! != priorityList[selectedPriority]) {
-                // if this block executes it means we need to update this assessment
-                // because one of the properties got changed! while add to calendar is clicked
-                self.updateAssessmentModel()
             }
             return
         }
         
-        if  self.assessment!.name! != name ||
-            self.assessment!.reminderBefore != reminderList[self.selectedReminder] ||
-            self.assessment!.handIn!.compare(handInDate) != .orderedSame ||
-            self.assessment!.due!.compare(dueDate) != .orderedSame ||
-            self.assessment!.notes! != notes ||
-            self.assessment!.module!.id?.uuidString != modules[selectedModule].id!.uuidString ||
-            String(self.assessment!.weightage) != weightage ||
-            String(self.assessment!.markAchieved) != markAchieved ||
-            self.assessment!.priority! != priorityList[selectedPriority]
-        {
-            self.updateAssessmentModel()
-            print("updated by default")
-        } else {
-            self.show = false
-            self.appState.showToast(
-                title: "No Changes",
-                detail: "You didn't make any changes to update the assessment.",
-                type: .info
-            )
+        // OPTIMIZED CHECK IF NEEDED TO BE UPDATED
+        if (addToCalendar && hadCalendarEvent && ncPropsChanged()) || propsChanged() {
+            self.__updateAssessmentModel()
+            return
         }
         
+        // NO UPDATES
+        self.show = false
+        self.handler.toast(
+            title: "No Changes",
+            message: "You didn't make any changes to update the assessment.",
+            type: .info
+        )
         
     }
+    
     
     // MARK: Mutating Functions
     
-    func updateAssessmentModel() -> Void {
+    private func __updateAssessmentModel() -> Void {
         
-        assessment!.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Normalize the selected dates
+        let (start, end) = getTimeNormalized()
+        
+        assessment!.name = name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: .controlCharacters)
+            .trimmingCharacters(in: .illegalCharacters)
         assessment!.weightage = Int16(weightage)!
-        assessment!.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        assessment!.notes = notes.trimmingCharacters(in: .whitespaces)
         assessment!.priority = priorityList[selectedPriority]
         assessment!.addToCalendar = addToCalendar
         assessment!.markAchieved = Int16(markAchieved)!
-        assessment!.handIn = handInDate
-        assessment!.due = dueDate
+        assessment!.handIn = start
+        assessment!.due = end
         assessment!.module = modules[selectedModule]
-        assessment!.reminderBefore = reminderList[selectedReminder]
+        assessment!.reminderBefore = addToCalendar ? reminderList[selectedReminder] : AlarmOffset.none.rawValue
+        // updatedAt is attached in a lifecycle hook
         
         do {
-            try managedObjectContext.save()
-            self.managedObjectContext.refreshAllObjects()
+            try moc.save()
+            moc.refreshAllObjects()
             self.show = false
-            self.appState.showToast(
+            handler.toast(
                 title: "Updated Assessment",
-                detail: "You have successfully updated \(assessment!.name!) Assessment.",
+                message:"You have successfully updated \(assessment!.name!) Assessment.",
                 type: .success
             )
         } catch let error {
-            self.show = false
-            self.appState.showAlert(
-                title: "Couldn't update assessment",
-                message: error.localizedDescription
-            )
+            handler.alert(title: "Couldn't update assessment", message: error.localizedDescription)
         }
         
     }
     
-    func createAssessmentModel(identifier: String?) -> Void {
+    private func __createAssessmentModel(identifier: String?) -> Void {
         
         if addToCalendar && identifier == nil {
-            self.appState.showAlert(
+            handler.alert(
                 title: "Unknown Identifier",
-                message: "Couldn't create calendar event!"
+                message: "Failed create calendar event and therefore unable to create the assessment."
             )
             return
         }
         
-        let assessment = Assessment(context: self.managedObjectContext)
+        // Normalize the selected dates.
+        let (start, end) = getTimeNormalized()
         
-        assessment.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let assessment = Assessment(context: moc)
+        
+        assessment.name = name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: .controlCharacters)
+            .trimmingCharacters(in: .illegalCharacters)
         assessment.weightage = Int16(weightage)!
         assessment.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         assessment.priority = priorityList[selectedPriority]
         assessment.addToCalendar = addToCalendar
-        assessment.eventIdentifier = identifier ?? ""
-        assessment.markAchieved = Int16(0)
-        assessment.handIn = handInDate
-        assessment.due = dueDate
+        assessment.eventIdentifier = identifier ?? "" /// only if addToCalendar is true
+        assessment.markAchieved = Int16(0) /// initially this is 0
+        assessment.handIn = start
+        assessment.due = end
         assessment.module = modules[selectedModule] /// Assign the selected module
         assessment.tasks = []
         assessment.reminderBefore = addToCalendar ? reminderList[selectedReminder] : AlarmOffset.none.rawValue
+        // updatedAt, createdAt, id are attached in lifecycle hooks
         
         do {
-            try managedObjectContext.save()
+            try moc.save()
             self.show = false
-            self.appState.showToast(
+            handler.toast(
                 title: "Created Assessment",
-                detail: "You have successfully created \(assessment.name!) Assessment.",
+                message: "You have successfully created \(assessment.name!) assessment.",
                 type: .success
             )
         } catch let error {
-            self.show = false
-            self.appState.showAlert(
+            handler.alert(
                 title: "Couldn't save assessment",
                 message: error.localizedDescription
             )
@@ -551,30 +467,107 @@ struct AssessmentManageView: View {
         
     }
     
-    // MARK: Validator Functions
     
-    func checkFormValidity() -> Void {
+    // MARK: Validators
+    
+    private func isFormValid() -> Bool {
         
-        /// Other fields are constrained inputs. There's no keyboard interactions
-        /// with those fields.
-        let isNameValid = name.matchesExact("^[ a-zA-Z\\d_.\\-]{3,50}$") /// ascii, max 3...50 char
-        let notesValid = notes.count <= 200 /// max char count is 200
-        let isWeightageValid = weightage.matchesExact("^(?:100|[1-9][0-9]|[0-9])$") /// 0...100
-        let isMarkValid = markAchieved.matchesExact("^(?:100|[1-9][0-9]|[0-9])$") /// 0...100
+        /// Other fields are constrained inputs. There's no keyboard interactions with those fields.
+        let isNameValid = name.matches(regex: NAME_REGEX!) /// ASCII, max 3...50 char
+        let notesValid = notes.count <= 200 /// MAX char count is 200
+        let isWeightageValid = weightage.matches(regex: RANGE_0_TO_100_REGEX!) /// 0...100
+        let isMarkValid = markAchieved.matches(regex: RANGE_0_TO_100_REGEX!) /// 0...100
         
-        self.shouldDisableSubmit = (
-            !isNameValid ||
-                !notesValid ||
-                !isWeightageValid ||
-                !isMarkValid ||
-                modules.count == 0
-        )
+        let (start, end) = getTimeNormalized()
+        let isDateValid = (start.compare(end) != .orderedDescending) && (start.compare(end) != .orderedSame)
+        
+        // SEND IN ALERTS IF WRONG AND
+        
+//        if !isNameValid {
+//            handler.alert()
+//        }
+        
+        return true
         
     }
     
-    func checkIfDatesAreValid() -> Bool {
-        return self.handInDate.compare(self.dueDate) == .orderedAscending ||
-            self.handInDate.compare(self.dueDate) == .orderedSame
+    private func getTimeNormalized() -> (start: Date, end: Date) {
+        
+        let rStart = Calendar.current.date(
+            byAdding: .minute,
+            value: -1,
+            to: Calendar.current.date(bySetting: .second, value: 0, of: handInDate)!
+            )!
+        let rEnd = Calendar.current.date(
+            byAdding: .minute,
+            value: -1,
+            to: Calendar.current.date(bySetting: .second, value: 0, of: dueDate)!
+            )!
+        
+        return (start: rStart, end: rEnd)
+        
+    }
+    
+    
+    // MARK: Permissions
+    
+    private func executeIfHasPermission(task: @escaping () -> Void) -> Void {
+        CalendarManager.shared.doCheckPermissions { (response: CalendarManagerResponse) in
+            if response == .success {
+                task()
+            } else if response == .error(.calendarAccessDeniedOrRestricted) {
+                self.handler.alert(
+                    title: "Access Denied",
+                    message: "Please grant access to the calendar. Settings > Privacy > Assessment Planner > Calendar"
+                )
+            } else {
+                self.handler.alert(
+                    title: "Unexpected Error",
+                    message: "Cannot access to calendar application."
+                )
+            }
+        }
+    }
+    
+    
+    // MARK: Helper Functions
+    
+    private func cPropsChanged() -> Bool {
+        return (assessment!.name! != name ||
+            assessment!.reminderBefore != reminderList[selectedReminder] ||
+            assessment!.handIn!.compare(handInDate) != .orderedSame ||
+            assessment!.due!.compare(dueDate) != .orderedSame ||
+            assessment!.notes! != notes)
+    }
+    
+    private func ncPropsChanged() -> Bool {
+        return (assessment!.module!.id?.uuidString != modules[selectedModule].id!.uuidString ||
+            String(assessment!.weightage) != weightage ||
+            String(assessment!.markAchieved) != markAchieved ||
+            assessment!.priority! != priorityList[selectedPriority])
+    }
+    
+    private func propsChanged() -> Bool {
+        return (assessment!.name! != name ||
+            assessment!.reminderBefore != reminderList[selectedReminder] ||
+            assessment!.handIn!.compare(handInDate) != .orderedSame ||
+            assessment!.due!.compare(dueDate) != .orderedSame ||
+            assessment!.notes! != notes ||
+            assessment!.module!.id?.uuidString != modules[selectedModule].id!.uuidString ||
+            String(assessment!.weightage) != weightage ||
+            String(assessment!.markAchieved) != markAchieved ||
+            assessment!.priority! != priorityList[selectedPriority])
+    }
+    
+    private func constructCalendarEvent() -> CalendarEvent {
+        let event = CalendarEvent(
+            title: self.name,
+            startDate: self.handInDate,
+            endDate: self.dueDate,
+            notes: self.notes,
+            alarmOffset: AlarmOffset.fromRawValue(str: self.reminderList[self.selectedReminder])
+        )
+        return event
     }
     
 }

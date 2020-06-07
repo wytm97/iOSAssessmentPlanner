@@ -10,17 +10,15 @@ import SwiftUI
 
 struct DetailView: View {
     
-    @EnvironmentObject var appState: GlobalState
+    @EnvironmentObject var message: AlertManager
     @Environment(\.colorScheme) var colorScheme: ColorScheme
-    @Environment(\.managedObjectContext) var managedObjectContext
+    @Environment(\.managedObjectContext) var moc
     @FetchRequest var tasks: FetchedResults<Task>
     
-    /// The assessment must be passed from the parent view
-    /// whether its editing or not.
+    /// The assessment must be passed from the parent view whether its editing or not.
     var assessment: Assessment
     
-    /// Task will be nil when not in editing mode. It means the user
-    /// has requested to add a new task.
+    /// Task will be non-nil when in editing mode.
     @State var editingTask: Task? = nil
     @State var showAnimation: Bool = false
     @State var showModal: Bool = false
@@ -43,25 +41,39 @@ struct DetailView: View {
                     .foregroundColor(.gray)
                     .opacity(0.5)
             } else {
-                wrapper
-                    .frame(minWidth: 300, maxWidth: .infinity)
-                    .navigationBarTitle(
-                        Text("Tasks of \(assessment.module!.name!) \(assessment.name!)"),
-                        displayMode: .inline
+                VStack {
+                    self.summary
+                    Divider()
+                    self.controlPanelSection
+                    Divider()
+                    self.taskList
+                    Spacer()
+                }
+                .frame(minWidth: 300, maxWidth: .infinity)
+                .navigationBarTitle(
+                    Text("Tasks of \(assessment.module!.name!) \(assessment.name!)"),
+                    displayMode: .inline
                 )
             }
         }
         .navigationBarItems(leading: assessmentFullInfoButton,trailing: assessmentEditButton)
         .navigationViewStyle(StackNavigationViewStyle())
         .sheet(isPresented: self.$showModal) {
+            self.presentationSheet
+                .environment(\.managedObjectContext, self.moc)
+                .environmentObject(self.message)
+        }
+        
+    }
+    
+    var presentationSheet: some View {
+        VStack {
             if self.activeModal == .editAssessment {
                 AssessmentManageView(
                     show: self.$showModal,
                     editing: true,
                     assessment: self.assessment
                 )
-                    .environment(\.managedObjectContext, self.managedObjectContext)
-                    .environmentObject(self.appState)
             } else if self.activeModal == .addTask {
                 TaskManageView(
                     assessment: self.assessment,
@@ -69,55 +81,28 @@ struct DetailView: View {
                     task: self.editingTask,
                     show: self.$showModal
                 )
-                    .environment(\.managedObjectContext, self.managedObjectContext)
-                    .environmentObject(self.appState)
             } else if self.activeModal == .editTask {
                 TaskManageView(
                     assessment: self.assessment,
-                    afterEditing: self.afterEditingATask,
                     editing: true,
                     task: self.editingTask,
                     show: self.$showModal
                 )
-                    .environment(\.managedObjectContext, self.managedObjectContext)
-                    .environmentObject(self.appState)
             } else if self.activeModal == .detailedInfo {
                 AssessmentDetails(assessment: self.assessment)
-                    .environment(\.managedObjectContext, self.managedObjectContext)
-                    .environmentObject(self.appState)
+            } else {
+                EmptyView()
             }
         }
-    }
-    
-    func afterEditingATask(_ task: Task) -> Void {
-        self.showTasksList = false
-        DispatchQueue.main.asyncAfter(
-            deadline: .now() + 0.05,
-            execute: DispatchWorkItem {
-                self.showTasksList = true
-                self.managedObjectContext.refreshAllObjects()
-            }
-        )
     }
     
     // MARK: Task list view section
-    
-    var wrapper: some View {
-        VStack {
-            self.summary
-            Divider()
-            self.controlPanelSection
-            Divider()
-            self.taskList
-            Spacer()
-        }
-    }
     
     var taskList: some View {
         VStack {
             if tasks.count > 0 && self.showTasksList {
                 ScrollView {
-                    ForEach(tasks/*.filter { showCompletedTasks || $0.progress < 100 }*/, id: \.self) { task in
+                    ForEach(tasks, id: \.self) { task in
                         VStack {
                             if (self.showCompletedTasks || task.progress < 100) {
                                 TaskListItem(
@@ -127,7 +112,6 @@ struct DetailView: View {
                                     onDeleteClick: self.onTaskDeleteButtonClick,
                                     onCompleteClick: self.onTaskCompletedCheckBoxClick
                                 )
-                                // Divider()
                             }
                         }
                         .frame(minWidth: 0, maxWidth: .infinity)
@@ -342,8 +326,7 @@ struct DetailView: View {
             }
         }
         .padding(.horizontal, 15)
-            //.background(Color(hex: 0x232323, alpha: 0.7))
-            .frame(maxWidth: .infinity, minHeight: 40)
+        .frame(maxWidth: .infinity, minHeight: 40)
     }
     
     // MARK: Event Handlers
@@ -355,30 +338,32 @@ struct DetailView: View {
     }
     
     func onTaskDeleteButtonClick(_ index: Int, _ task: Task) -> Void {
-        appState.showAlert(conf: AlertConfiguration(
+        
+        message.alert(configuration: AlertConfig(
             title: "Delete \(task.name!)?",
-            message: "Are you sure you want to delete this task forever? You cannot undo this action.",
-            confirmButtonText: "Yes",
+            message: "Are you sure you want to delete this task forever? you cannot undo this action.",
+            confirmText: "Delete",
             confirmCallback: {
                 CalendarManager.shared.deleteCalendarEventAsync(id: String(task.eventIdentifier!))
-                self.managedObjectContext.delete(task)
-                try? self.managedObjectContext.save()
-                self.managedObjectContext.refreshAllObjects()
-        }))
+                self.moc.delete(task)
+                try? self.moc.save()
+                self.moc.refreshAllObjects()
+        },
+            confirmIsDestructive: true,
+            cancelIsVisible: true,
+            cancelText: "Cancel")
+        )
+        
     }
     
     func onTaskCompletedCheckBoxClick(_ index: Int, _ task: Task, _ checked: Bool) -> Void {
-        if checked {
-            task.progress = 100
-        } else {
-            task.progress = 0
-        }
-        try? self.managedObjectContext.save()
+        task.progress = checked ? 100 : 0
+        try? self.moc.save()
         DispatchQueue.main.asyncAfter(
             deadline: .now() + 0.5,
             execute: DispatchWorkItem {
-                self.managedObjectContext.refresh(task, mergeChanges: true)
-                self.managedObjectContext.refreshAllObjects()
+                self.moc.refresh(task, mergeChanges: true)
+                self.moc.refreshAllObjects()
             }
         )
     }

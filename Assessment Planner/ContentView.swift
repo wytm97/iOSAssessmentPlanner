@@ -20,7 +20,7 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) var moc
     @FetchRequest(fetchRequest: Assessment.getAllAssessments()) var assessments: FetchedResults<Assessment>
     @FetchRequest(fetchRequest: Module.getAllModules()) var modules: FetchedResults<Module>
-    @EnvironmentObject var appState: GlobalState
+    @EnvironmentObject var message: AlertManager
     
     // MARK: Filters State
     
@@ -30,7 +30,6 @@ struct ContentView: View {
     @State var selectedModuleFilter: String = ""
     @State var filterPriority: String? = nil
     @State var filterModule: Module? = nil
-    
     @State var currentModuleIndex = 0
     @State var currentPriorityIndex = 0
     
@@ -60,27 +59,24 @@ struct ContentView: View {
                 .opacity(0.5)
         }
         .sheet(isPresented: self.$showActiveViewSheetModal) {
-            
             /// This parent view can show upto 3 different view in context.
             /// The parent should also give child sheet access to the environment's variables.
-            
             if self.activeSheetModal == .addModuleView {
                 ModuleAddView(show: self.$showActiveViewSheetModal)
                     .environment(\.managedObjectContext, self.moc)
-                    .environmentObject(self.appState)
+                    .environmentObject(self.message)
             } else if self.activeSheetModal == .addAssessmentView {
                 AssessmentManageView(show: self.$showActiveViewSheetModal)
                     .environment(\.managedObjectContext, self.moc)
-                    .environmentObject(self.appState)
+                    .environmentObject(self.message)
             } else {
                 ModuleDeleteView(show: self.$showActiveViewSheetModal)
                     .environment(\.managedObjectContext, self.moc)
-                    .environmentObject(self.appState)
+                    .environmentObject(self.message)
             }
-            
         }
-        .attachAlert(isPresented: $appState.showAlert, data: appState.alertData)
-        .toast(data: $appState.toastData, show: $appState.showToast)
+        .attachAlert(isPresented: $message.showAlert, conf: message.alertConf)
+        .attachToaster(data: $message.toastData, show: $message.showToast)
         .onAppear { self.mapFilterToView() }
         
     }
