@@ -25,7 +25,7 @@ struct FormModalWrapper<Content:View>: View {
         cancelButtonText: String = "Cancel",
         showSubmitButton: Bool = true,
         submitButtonText: String = "Add",
-        onSubmit: @escaping (() -> Void),
+        onSubmit: @escaping (() -> Void) = {},
         disableSubmit: Binding<Bool>,
         show: Binding<Bool>,
         title: String,

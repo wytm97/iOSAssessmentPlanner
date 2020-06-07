@@ -10,6 +10,8 @@ import SwiftUI
 
 struct AssessmentDetails: View {
     
+    @Binding var show: Bool
+    
     let assessment: Assessment
     
     var body: some View {
@@ -19,7 +21,7 @@ struct AssessmentDetails: View {
             submitButtonText: "",
             onSubmit: {},
             disableSubmit: .constant(true),
-            show: .constant(true),
+            show: $show,
             title: "Details of \(assessment.name!)") {
                 basic
                 marks

@@ -10,6 +10,10 @@ import SwiftUI
 
 struct ModuleAddView: View {
     
+    private let MODULE_NAME_REGEX = try? NSRegularExpression(pattern: "^[ a-zA-Z.\\d\\-_]{3,50}$")
+    private let PERSON_NAME_REGEX = try? NSRegularExpression(pattern: "^[ a-zA-Z.]{3,40}$")
+    private let MODULE_CODE_REGEX = try? NSRegularExpression(pattern: "^[ a-zA-Z\\d_.\\-]{3,15}$")
+    
     @Environment(\.managedObjectContext) var moc
     @EnvironmentObject var message: AlertManager
     var moduleLevels: [String] = ModuleLevel.values()
@@ -19,14 +23,13 @@ struct ModuleAddView: View {
     @State var moduleCode = ""
     @State var moduleLeader = ""
     @State var selectedLevel: Int = 0
-    @State var shouldDisableSubmit: Bool = true
     
     // MARK: View Declaractions
     
     var body: some View {
         FormModalWrapper(
             onSubmit: self.onAddButtonClick,
-            disableSubmit: $shouldDisableSubmit,
+            disableSubmit: .constant(false),
             show: $show,
             title: "Create New Module") {
                 nameField
@@ -74,6 +77,10 @@ struct ModuleAddView: View {
     
     func onAddButtonClick() -> Void {
         
+        if !isFormValid() {
+            return
+        }
+        
         /// Mapping the state to the model. Note that we dont assign `id` and `createdAt`
         /// properties here. This is because we assign them automatically when creating a new
         /// `Module` instance.
@@ -112,17 +119,37 @@ struct ModuleAddView: View {
     
     // MARK: Validators
     
-    func isFormValid() -> Void {
-        //        let isNameValid = moduleName.matchesExact("^[ a-zA-Z\\d_.\\-]{3,40}$") // 3..40 mix char ascii
-        //        let isCodeValid = moduleCode.matchesExact("^[ a-zA-Z\\d_.\\-]{3,15}$") // 3..15 mix char ascii
-        //        let isLeaderNameValid = moduleLeader.matchesExact("^[ a-zA-Z_.]{3,40}$") // name should only have alphabetic
-        //        let isLevelValid = selectedLevel >= 0 && selectedLevel <= 5 // 0..5
-        //        self.shouldDisableSubmit = (
-        //            !isNameValid ||
-        //                !isCodeValid ||
-        //                !isLeaderNameValid ||
-        //                !isLevelValid
-        //        )
+    func isFormValid() -> Bool {
+        
+        if !moduleName.matches(regex: MODULE_NAME_REGEX!) {
+            message.alert(
+                title: "Invalid Module Name",
+                message: "Module name should be atleast 3 characters and must not" +
+                " exceed 50 characters and should not contain special characters."
+            )
+            return false
+        }
+        
+        if !moduleCode.matches(regex: MODULE_CODE_REGEX!) {
+            message.alert(
+                title: "Invalid Module Code",
+                message: "Module code should be atleast 3 characters and must not" +
+                " exceed 15 characters."
+            )
+            return false
+        }
+        
+        if !moduleLeader.matches(regex: PERSON_NAME_REGEX!) {
+            message.alert(
+                title: "Invalid Leader Name",
+                message: "Module leader name should be atleast 3 characters and must not" +
+                " exceed 40 characters. Special characters are not allowed."
+            )
+            return false
+        }
+        
+        return true
+        
     }
     
 }

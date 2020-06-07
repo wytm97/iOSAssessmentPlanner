@@ -16,7 +16,7 @@ struct AssessmentManageView: View {
     private let NAME_REGEX = try? NSRegularExpression(pattern: "^[ a-zA-Z\\d_.\\-]{3,50}$")
     private let RANGE_0_TO_100_REGEX = try? NSRegularExpression(pattern: "^(?:100|[1-9][0-9]|[0-9])$")
     
-    @EnvironmentObject var handler: AlertManager
+    @EnvironmentObject var message: AlertManager
     @Environment(\.managedObjectContext) var moc
     @FetchRequest(fetchRequest: Module.getAllModules()) var modules: FetchedResults<Module>
     @State var reminderList: [String] = AlarmOffset.rawValues()
@@ -164,14 +164,13 @@ struct AssessmentManageView: View {
                 .font(.headline)
             Toggle(isOn: $addToCalendar) {
                 HStack {
-                    Text(addToCalendar ?
-                        "A calendar event will be created" : "No calendar event will be created")
+                    Text(resolveAddToCalendarDesciption())
                         .font(.body)
                         .foregroundColor(Color.gray)
                     Image(systemName: addToCalendar ?
                         "checkmark.circle.fill" : "multiply.square.fill")
                         .font(.body)
-                        .foregroundColor(addToCalendar ? Color.green : Color.orange)
+                        .foregroundColor(addToCalendar ? Color.green : Color.red)
                 }
             }
         }
@@ -249,6 +248,28 @@ struct AssessmentManageView: View {
         
     }
     
+    func resolveAddToCalendarDesciption() -> String {
+        
+        if addToCalendar {
+            if editing && hadCalendarEvent {
+                return "A calendar event is already created"
+            } else if editing && !hadCalendarEvent {
+                return "A calendar event will be created for this assessment"
+            } else {
+                return "A calendar event will be created"
+            }
+        } else {
+            if editing && hadCalendarEvent {
+                return "The calendar event will be removed"
+            } else if editing && !hadCalendarEvent {
+                return "No calendar event created for this assessment"
+            } else {
+                return "No calendar event will be created"
+            }
+        }
+        
+    }
+    
     
     // MARK: Event handlers
     
@@ -265,12 +286,12 @@ struct AssessmentManageView: View {
                     if case .created(let identifier) = res {
                         self.__createAssessmentModel(identifier: identifier)
                     } else if res == .error(.eventAlreadyExistsInCalendar) {
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Duplicate Event",
                             message: "There's a event already in the caledar with the same name, notes, date, and alarms!"
                         )
                     } else {
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Cannot Create Calendar Event",
                             message: "Failed to create calendar event and therefore cannot create this assessment!"
                         )
@@ -318,7 +339,7 @@ struct AssessmentManageView: View {
                     if case .error(.eventNotAddedToCalendar( _)) = res {
                         self.addToCalendar = false
                         self.__updateAssessmentModel()
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Failed to Add to Calendar",
                             message: "Please try this operation again later."
                         )
@@ -329,7 +350,7 @@ struct AssessmentManageView: View {
                     if res == .error(.eventAlreadyExistsInCalendar) {
                         self.addToCalendar = false
                         self.__updateAssessmentModel()
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Duplicate Event",
                             message: "Didn't create any new event because one is already created."
                         )
@@ -354,7 +375,7 @@ struct AssessmentManageView: View {
                     } else if res == .updated {
                         self.__updateAssessmentModel()
                     } else if res == .error(.eventFailedToUpdate) {
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Failed to Update",
                             message: "Assessment did not save properly!"
                         )
@@ -372,7 +393,7 @@ struct AssessmentManageView: View {
         
         // NO UPDATES
         self.show = false
-        self.handler.toast(
+        self.message.toast(
             title: "No Changes",
             message: "You didn't make any changes to update the assessment.",
             type: .info
@@ -385,9 +406,6 @@ struct AssessmentManageView: View {
     
     private func __updateAssessmentModel() -> Void {
         
-        // Normalize the selected dates
-        let (start, end) = getTimeNormalized()
-        
         assessment!.name = name
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: .controlCharacters)
@@ -397,8 +415,8 @@ struct AssessmentManageView: View {
         assessment!.priority = priorityList[selectedPriority]
         assessment!.addToCalendar = addToCalendar
         assessment!.markAchieved = Int16(markAchieved)!
-        assessment!.handIn = start
-        assessment!.due = end
+        assessment!.handIn = handInDate.resetSeconds()!
+        assessment!.due = dueDate.resetSeconds()!
         assessment!.module = modules[selectedModule]
         assessment!.reminderBefore = addToCalendar ? reminderList[selectedReminder] : AlarmOffset.none.rawValue
         // updatedAt is attached in a lifecycle hook
@@ -407,13 +425,13 @@ struct AssessmentManageView: View {
             try moc.save()
             moc.refreshAllObjects()
             self.show = false
-            handler.toast(
+            message.toast(
                 title: "Updated Assessment",
                 message:"You have successfully updated \(assessment!.name!) Assessment.",
                 type: .success
             )
         } catch let error {
-            handler.alert(title: "Couldn't update assessment", message: error.localizedDescription)
+            message.alert(title: "Couldn't update assessment", message: error.localizedDescription)
         }
         
     }
@@ -421,15 +439,12 @@ struct AssessmentManageView: View {
     private func __createAssessmentModel(identifier: String?) -> Void {
         
         if addToCalendar && identifier == nil {
-            handler.alert(
+            message.alert(
                 title: "Unknown Identifier",
                 message: "Failed create calendar event and therefore unable to create the assessment."
             )
             return
         }
-        
-        // Normalize the selected dates.
-        let (start, end) = getTimeNormalized()
         
         let assessment = Assessment(context: moc)
         
@@ -443,8 +458,8 @@ struct AssessmentManageView: View {
         assessment.addToCalendar = addToCalendar
         assessment.eventIdentifier = identifier ?? "" /// only if addToCalendar is true
         assessment.markAchieved = Int16(0) /// initially this is 0
-        assessment.handIn = start
-        assessment.due = end
+        assessment.handIn = handInDate.resetSeconds()!
+        assessment.due = dueDate.resetSeconds()!
         assessment.module = modules[selectedModule] /// Assign the selected module
         assessment.tasks = []
         assessment.reminderBefore = addToCalendar ? reminderList[selectedReminder] : AlarmOffset.none.rawValue
@@ -453,13 +468,13 @@ struct AssessmentManageView: View {
         do {
             try moc.save()
             self.show = false
-            handler.toast(
+            message.toast(
                 title: "Created Assessment",
                 message: "You have successfully created \(assessment.name!) assessment.",
                 type: .success
             )
         } catch let error {
-            handler.alert(
+            message.alert(
                 title: "Couldn't save assessment",
                 message: error.localizedDescription
             )
@@ -472,42 +487,51 @@ struct AssessmentManageView: View {
     
     private func isFormValid() -> Bool {
         
-        /// Other fields are constrained inputs. There's no keyboard interactions with those fields.
-        let isNameValid = name.matches(regex: NAME_REGEX!) /// ASCII, max 3...50 char
-        let notesValid = notes.count <= 200 /// MAX char count is 200
-        let isWeightageValid = weightage.matches(regex: RANGE_0_TO_100_REGEX!) /// 0...100
-        let isMarkValid = markAchieved.matches(regex: RANGE_0_TO_100_REGEX!) /// 0...100
+        if !name.matches(regex: NAME_REGEX!) {
+            message.alert(
+                title: "Invalid name",
+                message: "Assessment name should be atleast 3 characters and must not" +
+                " exceed 50 characters and should not contain special characters."
+            )
+            return false
+        }
         
-        let (start, end) = getTimeNormalized()
-        let isDateValid = (start.compare(end) != .orderedDescending) && (start.compare(end) != .orderedSame)
+        if !(notes.count <= 200) {
+            message.alert(
+                title: "Notes too large",
+                message: "Assessment notes should not exceed 200 characters"
+            )
+            return false
+        }
         
-        // SEND IN ALERTS IF WRONG AND
+        if !weightage.matches(regex: RANGE_0_TO_100_REGEX!) {
+            message.alert(
+                title: "Invalid weightage value",
+                message: "Weightage must be in the range of 0 to 100"
+            )
+            return false
+        }
         
-//        if !isNameValid {
-//            handler.alert()
-//        }
+        if !markAchieved.matches(regex: RANGE_0_TO_100_REGEX!) {
+            message.alert(
+                title: "Invalid mark value",
+                message: "Mark achieved must be in the range of 0 to 100"
+            )
+            return false
+        }
+        
+        let (start, end) = (handInDate.resetSeconds()!, dueDate.resetSeconds()!)
+        if (start.compare(end) == .orderedDescending) || (start.compare(end) == .orderedSame) {
+            message.alert(
+                title: "Date range out of order",
+                message: "Hand-in date should always be less than the due date"
+            )
+            return false
+        }
         
         return true
         
     }
-    
-    private func getTimeNormalized() -> (start: Date, end: Date) {
-        
-        let rStart = Calendar.current.date(
-            byAdding: .minute,
-            value: -1,
-            to: Calendar.current.date(bySetting: .second, value: 0, of: handInDate)!
-            )!
-        let rEnd = Calendar.current.date(
-            byAdding: .minute,
-            value: -1,
-            to: Calendar.current.date(bySetting: .second, value: 0, of: dueDate)!
-            )!
-        
-        return (start: rStart, end: rEnd)
-        
-    }
-    
     
     // MARK: Permissions
     
@@ -516,12 +540,12 @@ struct AssessmentManageView: View {
             if response == .success {
                 task()
             } else if response == .error(.calendarAccessDeniedOrRestricted) {
-                self.handler.alert(
+                self.message.alert(
                     title: "Access Denied",
                     message: "Please grant access to the calendar. Settings > Privacy > Assessment Planner > Calendar"
                 )
             } else {
-                self.handler.alert(
+                self.message.alert(
                     title: "Unexpected Error",
                     message: "Cannot access to calendar application."
                 )

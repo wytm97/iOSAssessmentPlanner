@@ -50,7 +50,7 @@ struct ContentView: View {
                 )
             }
             .navigationBarTitle(Text("Assessments"), displayMode: .large)
-            .navigationBarItems(leading: addModuleShortcutButton, trailing: addAssessmentButton)
+            .navigationBarItems(leading: moduleManageShortcuts, trailing: addAssessmentButton)
             .navigationViewStyle(DoubleColumnNavigationViewStyle())
             /// Initial view if none of the list items is selected or is just empty.
             Text("Please Choose/Create an Assessment")
@@ -81,7 +81,7 @@ struct ContentView: View {
         
     }
     
-    var addModuleShortcutButton: some View {
+    var moduleManageShortcuts: some View {
         HStack(spacing: 10) {
             Button(action: {
                 self.activeSheetModal = .addModuleView
@@ -99,6 +99,8 @@ struct ContentView: View {
                     .font(.title)
                     .foregroundColor(Color.pink)
             }
+            .opacity(modules.count == 0 ? 0.5 : 1)
+            .disabled(modules.count == 0)
         }
     }
     
@@ -145,6 +147,8 @@ struct ContentView: View {
                 }
             }
         }
+        .opacity(modules.count == 0 ? 0.5 : 1)
+        .disabled(modules.count == 0)
     }
     
     var filter2: some View {
@@ -174,6 +178,8 @@ struct ContentView: View {
                 }
             }
         }
+        .opacity(modules.count == 0 ? 0.5 : 1)
+        .disabled(modules.count == 0)
     }
     
     var filters: some View {

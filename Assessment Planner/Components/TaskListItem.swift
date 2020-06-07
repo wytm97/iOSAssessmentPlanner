@@ -120,13 +120,20 @@ struct TaskListItem: View {
     
     var taskSummary: some View {
         VStack {
-            ProgressRing(
-                color1: #colorLiteral(red: 0.2745098174, green: 0.4862745106, blue: 0.1411764771, alpha: 1),
-                color2: #colorLiteral(red: 0.5843137503, green: 0.8235294223, blue: 0.4196078479, alpha: 1),
-                width: 80, height: 80,
-                percent: CGFloat(self.task.progress),
-                show: .constant(true)
-            )
+            if task.progress < 100 {
+                ProgressRing(
+                    color1: #colorLiteral(red: 0.3411764801, green: 0.6235294342, blue: 0.1686274558, alpha: 1),
+                    color2: #colorLiteral(red: 0.5843137503, green: 0.8235294223, blue: 0.4196078479, alpha: 1),
+                    width: 80, height: 80,
+                    percent: CGFloat(self.task.progress),
+                    show: .constant(true)
+                )
+            } else {
+                Image(systemName: "checkmark")
+                    .resizable()
+                    .foregroundColor(Color.green)
+                    .frame(width: 80, height: 80, alignment: .center)
+            }
         }
     }
     

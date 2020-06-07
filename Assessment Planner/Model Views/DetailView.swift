@@ -89,7 +89,10 @@ struct DetailView: View {
                     show: self.$showModal
                 )
             } else if self.activeModal == .detailedInfo {
-                AssessmentDetails(assessment: self.assessment)
+                AssessmentDetails(
+                    show: self.$showModal,
+                    assessment: self.assessment
+                )
             } else {
                 EmptyView()
             }

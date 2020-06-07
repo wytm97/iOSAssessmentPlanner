@@ -12,6 +12,7 @@ struct ModuleDeleteView: View {
     
     @EnvironmentObject var message: AlertManager
     @FetchRequest(fetchRequest: Module.getAllModules()) var modules: FetchedResults<Module>
+    var didSaveSomething = NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
     
     @Binding var show: Bool
     
@@ -19,7 +20,6 @@ struct ModuleDeleteView: View {
         FormModalWrapper(
             cancelButtonText: "Close",
             showSubmitButton: false,
-            onSubmit: { /*NO-OP*/ },
             disableSubmit: .constant(true),
             show: $show,
             title: "Available Modules"
@@ -30,6 +30,10 @@ struct ModuleDeleteView: View {
                 ForEach(modules, id: \.self) { (module: Module) in
                     ModuleItem(module: module)
                 }
+            }
+        }.onReceive(didSaveSomething) { _ in
+            if self.modules.count == 0 {
+                self.show = false
             }
         }
     }
@@ -67,7 +71,7 @@ struct ModuleItem: View {
                     }
                     Spacer()
                     VStack {
-                        Text("Assessment Count \(module.assessments!.count)").font(.caption)
+                        Text("No. of Assessments: \(module.assessments!.count)").font(.caption)
                         Button(action: onRemoveModuleClick) {
                             HStack {
                                 Image(systemName: "trash")

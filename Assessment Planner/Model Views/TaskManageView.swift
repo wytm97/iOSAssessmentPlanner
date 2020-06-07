@@ -16,7 +16,7 @@ struct TaskManageView: View {
     private let NAME_REGEX = try? NSRegularExpression(pattern: "^[ a-zA-Z\\d_.\\-]{3,50}$")
     private let RANGE_0_TO_100_REGEX = try? NSRegularExpression(pattern: "^(?:100|[1-9][0-9]|[0-9])$")
     
-    @EnvironmentObject var handler: AlertManager
+    @EnvironmentObject var message: AlertManager
     @Environment(\.managedObjectContext) var moc
     @State var reminderList: [String] = AlarmOffset.rawValues()
     
@@ -210,18 +210,22 @@ struct TaskManageView: View {
     
     func onAddButtonClicked() -> Void {
         
+        if !isFormValid() {
+            return
+        }
+        
         if addToCalendar {
             executeIfHasPermission {
                 CalendarManager.shared.createEvent(self.constructCalendarEvent()) { (res: CalendarManagerResponse) in
                     if case .created(let identifier) = res {
                         self.__createTaskModel(identifier: identifier)
                     } else if res == .error(.eventAlreadyExistsInCalendar) {
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Duplicate Event",
                             message: "There's a event already in the caledar with the same name, notes, date, and alarms!"
                         )
                     } else {
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Cannot Create Calendar Event",
                             message: "Failed to create calendar event and therefore cannot create this task!"
                         )
@@ -235,6 +239,10 @@ struct TaskManageView: View {
     }
     
     func onSaveButtonClicked() -> Void {
+        
+        if !isFormValid() {
+            return
+        }
         
         // DELETE THE CALENDAR EVENT AND UPDATE THE MODEL
         if !addToCalendar && hadCalendarEvent {
@@ -261,7 +269,7 @@ struct TaskManageView: View {
                     if case .error(.eventNotAddedToCalendar( _)) = res {
                         self.addToCalendar = false
                         self.__updateTaskModel()
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Failed to Add to Calendar",
                             message: "Please try adding this task to calendar later."
                         )
@@ -270,7 +278,7 @@ struct TaskManageView: View {
                     if res == .error(.eventAlreadyExistsInCalendar) {
                         self.addToCalendar = false
                         self.__updateTaskModel()
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Duplicate Event",
                             message: "Didn't create any new event because one is already created."
                         )
@@ -294,7 +302,7 @@ struct TaskManageView: View {
                     } else if res == .updated {
                         self.__updateTaskModel()
                     } else if res == .error(.eventFailedToUpdate) {
-                        self.handler.alert(
+                        self.message.alert(
                             title: "Failed to Update",
                             message: "Task did not save properly!"
                         )
@@ -312,7 +320,7 @@ struct TaskManageView: View {
         
         // NO UPDATES
         self.show = false
-        self.handler.toast(
+        self.message.toast(
             title: "No Changes",
             message: "You didn't make any changes to update the task.",
             type: .info
@@ -324,8 +332,6 @@ struct TaskManageView: View {
     
     private func __updateTaskModel() -> Void {
         
-        let (start, end) = getTimeNormalized() /// Normalize the selected dates.
-        
         task!.name = name
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: .controlCharacters)
@@ -333,8 +339,8 @@ struct TaskManageView: View {
         task!.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         task!.addToCalendar = addToCalendar
         task!.progress = Int16(progress)
-        task!.handIn = start
-        task!.due = end
+        task!.handIn = handInDate.resetSeconds()!
+        task!.due = dueDate.resetSeconds()!
         task!.reminderBefore = reminderList[selectedReminder]
         // updatedAt is attached in a lifecycle hook
         
@@ -343,13 +349,13 @@ struct TaskManageView: View {
             try moc.save()
             self.show = false
             moc.refreshAllObjects()
-            handler.toast(
+            message.toast(
                 title: "Updated Task",
                 message:"You have successfully updated \(task!.name!) Task.",
                 type: .success
             )
         } catch let error {
-            handler.alert(title: "Couldn't update task", message: error.localizedDescription)
+            message.alert(title: "Couldn't update task", message: error.localizedDescription)
         }
         
     }
@@ -357,14 +363,13 @@ struct TaskManageView: View {
     private func __createTaskModel(identifier: String?) -> Void {
         
         if addToCalendar && identifier == nil {
-            handler.alert(
+            message.alert(
                 title: "Unknown Identifier",
                 message: "Failed create calendar event and therefore unable to create assessment."
             )
             return
         }
         
-        let (start, end) = getTimeNormalized() /// Normalize the selected dates.
         let newTask = Task(context: moc)
         
         newTask.name = name
@@ -375,8 +380,8 @@ struct TaskManageView: View {
         newTask.addToCalendar = addToCalendar
         newTask.progress = 0
         newTask.reminderBefore = addToCalendar ? reminderList[selectedReminder] : AlarmOffset.none.rawValue
-        newTask.handIn = start
-        newTask.due = end
+        newTask.handIn = handInDate.resetSeconds()!
+        newTask.due = dueDate.resetSeconds()!
         newTask.eventIdentifier = identifier ?? ""
         newTask.assessment = self.assessment
         // updatedAt, createdAt, id are attached in lifecycle hooks
@@ -385,13 +390,13 @@ struct TaskManageView: View {
             moc.insert(newTask)
             try moc.save()
             self.show = false
-            handler.toast(
+            message.toast(
                 title: "Created Task",
                 message: "You have successfully created \(newTask.name!) Task.",
                 type: .success
             )
         } catch let error {
-            handler.alert(
+            message.alert(
                 title: "Couldn't save task",
                 message: error.localizedDescription
             )
@@ -401,35 +406,35 @@ struct TaskManageView: View {
     
     // MARK: Validators
     
-    private func isFormValid() -> Void {
+    private func isFormValid() -> Bool {
         
-//        /// Other fields are constrained inputs. There's no keyboard interactions with those fields.
-//        let isNameValid = name.matches(regex: NAME_REGEX!) /// ASCII, max 3...50 char
-//        let notesValid = notes.count <= 100 /// MAX char count is 100
-//        let isProgressValid = String(Int(progress)).matches(regex: RANGE_0_TO_100_REGEX!) /// 0...100
-//        let (start, end) = getTimeNormalized()
-//
-//        self.isInvalidForm = (
-//            !isNameValid || !notesValid || !isProgressValid ||
-//                start.compare(end) == .orderedDescending || start.compare(end) == .orderedSame
-//        )
+        if !name.matches(regex: NAME_REGEX!) {
+            message.alert(
+                title: "Invalid name",
+                message: "Assessment name should be atleast 3 characters and must not" +
+                " exceed 50 characters and should not contain special characters."
+            )
+            return false
+        }
         
-    }
-    
-    private func getTimeNormalized() -> (start: Date, end: Date) {
+        if !(notes.count <= 150) {
+            message.alert(
+                title: "Notes too large",
+                message: "Task notes should not exceed 150 characters. Keep it simple!"
+            )
+            return false
+        }
         
-        let rStart = Calendar.current.date(
-            byAdding: .minute,
-            value: -1,
-            to: Calendar.current.date(bySetting: .second, value: 0, of: handInDate)!
-            )!
-        let rEnd = Calendar.current.date(
-            byAdding: .minute,
-            value: -1,
-            to: Calendar.current.date(bySetting: .second, value: 0, of: dueDate)!
-            )!
+        let (start, end) = (handInDate.resetSeconds()!, dueDate.resetSeconds()!)
+        if (start.compare(end) == .orderedDescending) || (start.compare(end) == .orderedSame) {
+            message.alert(
+                title: "Date range out of order",
+                message: "Hand-in date should always be less than the due date."
+            )
+            return false
+        }
         
-        return (start: rStart, end: rEnd)
+        return true
         
     }
     
@@ -440,12 +445,12 @@ struct TaskManageView: View {
             if response == .success {
                 task()
             } else if response == .error(.calendarAccessDeniedOrRestricted) {
-                self.handler.alert(
+                self.message.alert(
                     title: "Access Denied",
                     message: "Please grant access to the calendar. Settings > Privacy > Assessment Planner > Calendar"
                 )
             } else {
-                self.handler.alert(
+                self.message.alert(
                     title: "Unexpected Error",
                     message: "Cannot access to calendar application."
                 )

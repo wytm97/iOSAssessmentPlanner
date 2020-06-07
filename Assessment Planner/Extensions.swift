@@ -91,3 +91,18 @@ extension View {
         self.modifier(TextLeftAlignModifier())
     }
 }
+
+extension Date {
+    
+    func resetSeconds() -> Date? {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second],
+            from: self
+        )
+        components.second = 0
+        components.nanosecond = 0
+        return calendar.date(from: components)
+    }
+    
+}
