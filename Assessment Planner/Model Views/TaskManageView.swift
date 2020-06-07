@@ -213,6 +213,11 @@ struct TaskManageView: View {
                         self.task?.reminderBefore = AlarmOffset.none.rawValue
                         try? self.moc.save()
                         self.moc.refreshAllObjects()
+                        self.message.alert(configuration: AlertConfig(
+                            title: "Missing Event",
+                            message: "Calendar event created by this application is deleted by the system user!",
+                            confirmText: "Acknowledged")
+                        )
                     }
                 }
             }
@@ -222,8 +227,8 @@ struct TaskManageView: View {
     
     func getEnclosedRange() -> ClosedRange<Date> {
         var dateClosedRange: ClosedRange<Date> {
-            let min = Calendar.current.date(byAdding: .second, value: -1, to: assessment.handIn!)!
-            let max = Calendar.current.date(byAdding: .second, value: 1, to: assessment.due!)!
+            let min = assessment.handIn!
+            let max = assessment.due!
             return min...max
         }
         return dateClosedRange

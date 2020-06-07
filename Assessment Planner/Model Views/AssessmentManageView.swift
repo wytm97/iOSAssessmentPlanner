@@ -265,6 +265,11 @@ struct AssessmentManageView: View {
                         self.assessment?.reminderBefore = AlarmOffset.none.rawValue
                         try? self.moc.save()
                         self.moc.refreshAllObjects()
+                        self.message.alert(configuration: AlertConfig(
+                            title: "Missing Event",
+                            message: "Calendar event created by this application is deleted by the system user!",
+                            confirmText: "Acknowledged")
+                        )
                     }
                 }
             }
