@@ -20,6 +20,9 @@ struct ProgressRing: View {
     var customLabel: String = "88"
     var type: RingValueType = .percentage
     
+    let labelDownScale: CGFloat = 0.7
+    let captionDownScale: CGFloat = 0.3
+    
     @Binding var show: Bool
     
     var body: some View {
@@ -69,30 +72,29 @@ struct ProgressRing: View {
                     if percent == 100 {
                         Image(systemName: "checkmark")
                             .foregroundColor(Color.green)
-                            .font(.system(size: (14 * multiplier) * 0.7))
+                            .font(.system(size: (14 * multiplier) * labelDownScale))
                     } else {
                         Text("\(Int(percent))%")
-                            .font(.system(size: (14 * multiplier) * 0.77))
+                            .font(.system(size: (14 * multiplier) * labelDownScale))
                             .fontWeight(.bold)
                             .id(UUID())
                             .onTapGesture {
                                 self.show = false
                         }
                     }
-                    Text("Completed").font(.system(size: (14 * multiplier) * 0.3))
+                    Text("Completed").font(.system(size: (14 * multiplier) * captionDownScale))
                 }
-                
             } else {
                 VStack(alignment: .center) {
                     Text(self.customLabel)
-                        .font(.system(size: (14 * multiplier) * 0.7))
+                        .font(.system(size: (14 * multiplier) * labelDownScale))
                         .fontWeight(.bold)
                         .id(UUID())
                         .onTapGesture {
                             self.show = false
                     }
                     Text(Int(self.customLabel) == 1 ? "Day" : "Days")
-                        .font(.system(size: (14 * multiplier) * 0.3))
+                        .font(.system(size: (14 * multiplier) * captionDownScale))
                 }
             }
         }
