@@ -129,7 +129,7 @@ struct TaskListItem: View {
                     show: .constant(true)
                 )
             } else {
-                Image(systemName: "checkmark")
+                Image(systemName: "checkmark.circle.fill")
                     .resizable()
                     .foregroundColor(Color.green)
                     .frame(width: 80, height: 80, alignment: .center)
