@@ -106,14 +106,13 @@ struct TaskManageView: View {
                 .font(.headline)
             Toggle(isOn: $addToCalendar) {
                 HStack {
-                    Text(addToCalendar ?
-                        "A calendar event will be created for this task" : "No calendar event will be created")
+                    Text(resolveAddToCalendarDesciption())
                         .font(.body)
                         .foregroundColor(Color.gray)
                     Image(systemName: addToCalendar ?
                         "checkmark.circle.fill" : "multiply.square.fill")
                         .font(.body)
-                        .foregroundColor(addToCalendar ? Color.green : Color.orange)
+                        .foregroundColor(addToCalendar ? Color.green : Color.red)
                 }
             }
         }.frame(minWidth: 0, maxWidth: .infinity)
@@ -205,6 +204,29 @@ struct TaskManageView: View {
         }
         return dateClosedRange
     }
+    
+    func resolveAddToCalendarDesciption() -> String {
+        
+        if addToCalendar {
+            if editing && hadCalendarEvent {
+                return "A calendar event is already created"
+            } else if editing && !hadCalendarEvent {
+                return "A calendar event will be created for this task"
+            } else {
+                return "A calendar event will be created"
+            }
+        } else {
+            if editing && hadCalendarEvent {
+                return "The calendar event will be removed"
+            } else if editing && !hadCalendarEvent {
+                return "No calendar events created for this task"
+            } else {
+                return "No calendar events will be created"
+            }
+        }
+        
+    }
+    
     
     // MARK: Event Handlers
     
@@ -410,7 +432,7 @@ struct TaskManageView: View {
         
         if !name.matches(regex: NAME_REGEX!) {
             message.alert(
-                title: "Invalid name",
+                title: "Invalid Name",
                 message: "Assessment name should be atleast 3 characters and must not" +
                 " exceed 50 characters and should not contain special characters."
             )
@@ -419,7 +441,7 @@ struct TaskManageView: View {
         
         if !(notes.count <= 150) {
             message.alert(
-                title: "Notes too large",
+                title: "Notes Too Large",
                 message: "Task notes should not exceed 150 characters. Keep it simple!"
             )
             return false
@@ -428,7 +450,7 @@ struct TaskManageView: View {
         let (start, end) = (handInDate.resetSeconds()!, dueDate.resetSeconds()!)
         if (start.compare(end) == .orderedDescending) || (start.compare(end) == .orderedSame) {
             message.alert(
-                title: "Date range out of order",
+                title: "Date Range Out of Order",
                 message: "Hand-in date should always be less than the due date."
             )
             return false

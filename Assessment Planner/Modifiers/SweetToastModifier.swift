@@ -49,9 +49,9 @@ struct SweetToastModifier: ViewModifier {
                         self.task = DispatchWorkItem {
                             withAnimation { self.show = false }
                         }
-                        // Auto dismiss after 2 seconds, and cancel the task if view
+                        // Auto dismiss after 2.5 seconds, and cancel the task if view
                         // disappear before the auto dismiss.
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: self.task!)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: self.task!)
                     }
                     .onDisappear { self.task?.cancel() }
                 }

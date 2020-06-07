@@ -262,9 +262,9 @@ struct AssessmentManageView: View {
             if editing && hadCalendarEvent {
                 return "The calendar event will be removed"
             } else if editing && !hadCalendarEvent {
-                return "No calendar event created for this assessment"
+                return "No calendar events created for this assessment"
             } else {
-                return "No calendar event will be created"
+                return "No calendar events will be created"
             }
         }
         
@@ -487,9 +487,17 @@ struct AssessmentManageView: View {
     
     private func isFormValid() -> Bool {
         
+        if modules.count == 0 {
+            message.alert(
+                title: "No Module Found!",
+                message: "Before adding a assessment you must create and assign a module."
+            )
+            return false
+        }
+        
         if !name.matches(regex: NAME_REGEX!) {
             message.alert(
-                title: "Invalid name",
+                title: "Invalid Name",
                 message: "Assessment name should be atleast 3 characters and must not" +
                 " exceed 50 characters and should not contain special characters."
             )
@@ -498,7 +506,7 @@ struct AssessmentManageView: View {
         
         if !(notes.count <= 200) {
             message.alert(
-                title: "Notes too large",
+                title: "Notes Too Large",
                 message: "Assessment notes should not exceed 200 characters"
             )
             return false
@@ -506,7 +514,7 @@ struct AssessmentManageView: View {
         
         if !weightage.matches(regex: RANGE_0_TO_100_REGEX!) {
             message.alert(
-                title: "Invalid weightage value",
+                title: "Invalid Weightage Value",
                 message: "Weightage must be in the range of 0 to 100"
             )
             return false
@@ -514,7 +522,7 @@ struct AssessmentManageView: View {
         
         if !markAchieved.matches(regex: RANGE_0_TO_100_REGEX!) {
             message.alert(
-                title: "Invalid mark value",
+                title: "Invalid Mark Value",
                 message: "Mark achieved must be in the range of 0 to 100"
             )
             return false
@@ -523,7 +531,7 @@ struct AssessmentManageView: View {
         let (start, end) = (handInDate.resetSeconds()!, dueDate.resetSeconds()!)
         if (start.compare(end) == .orderedDescending) || (start.compare(end) == .orderedSame) {
             message.alert(
-                title: "Date range out of order",
+                title: "Date Range Out of Order",
                 message: "Hand-in date should always be less than the due date"
             )
             return false

@@ -36,7 +36,7 @@ public class AlertManager: ObservableObject {
         }
     }
     
-    public func toast(title: String, message: String, type: ToastType, after: Double = 1.7) -> Void {
+    public func toast(title: String, message: String, type: ToastType, after: Double = 2) -> Void {
         DispatchQueue.main.asyncAfter(deadline: .now() + after) {
             self.toastData = ToastData(title: title, detail: message, type: type)
             self.showToast = true

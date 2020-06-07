@@ -310,19 +310,16 @@ struct DetailView: View {
                 }) {
                     HStack {
                         Text(self.showCompletedTasks ? "Hide Completed Tasks" : "Show Completed Tasks")
-                            //.bold()
                             .font(.callout)
-                            //.foregroundColor(Color(hex: 0x560027))
                             .id(UUID())
                             .fixedSize()
                         Image(systemName: self.showCompletedTasks ? "eye.slash.fill" : "eye.fill")
                             .font(.callout)
-                            //.foregroundColor(Color(hex: 0x560027))
                             .id(UUID())
                             .fixedSize()
                     }
                     .padding(12)
-                    .background(self.showCompletedTasks ? Color.red : Color.pink)
+                    .background(Color.pink)
                     .foregroundColor(.white)
                     .cornerRadius(10)
                 }
