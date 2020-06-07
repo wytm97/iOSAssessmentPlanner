@@ -21,20 +21,6 @@ extension View {
     }
 }
 
-extension Binding {
-    func didSet(execute: @escaping (Value) -> Void) -> Binding {
-        return Binding(
-            get: {
-                return self.wrappedValue
-        },
-            set: {
-                execute($0)
-                self.wrappedValue = $0
-        }
-        )
-    }
-}
-
 extension View {
     func attachAlert(isPresented: Binding<Bool>, conf: AlertConfig) -> some View {
         self.alert(isPresented: isPresented) {
@@ -93,7 +79,6 @@ extension View {
 }
 
 extension Date {
-    
     func resetSeconds() -> Date? {
         let calendar = Calendar.current
         var components = calendar.dateComponents(
@@ -104,5 +89,4 @@ extension Date {
         components.nanosecond = 0
         return calendar.date(from: components)
     }
-    
 }
