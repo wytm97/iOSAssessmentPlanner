@@ -28,7 +28,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         //IQKeyboardManager.shared.previousNextDisplayMode = .default
         
         // Generate Synthetic Data for Demonstration
-        DemoDataGenerator.generate(managedObjectContext: context)
+        // DemoDataGenerator.generate(managedObjectContext: context)
         
         // Global App State for Message Passing
         let appState = AlertManager()
